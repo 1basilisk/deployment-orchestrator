@@ -6,6 +6,8 @@ interface HeaderProps {
   activeTab: 'pipeline' | 'logs';
   setActiveTab: (tab: 'pipeline' | 'logs') => void;
   config: DeploymentConfig | null;
+  activePipelineId: string;
+  setActivePipelineId: (id: string) => void;
   logsCount: number;
   onResetWorkflow: () => void;
   isDeploying: boolean;
@@ -15,6 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   config,
+  activePipelineId,
+  setActivePipelineId,
   logsCount,
   onResetWorkflow,
   isDeploying,
@@ -36,9 +40,28 @@ export const Header: React.FC<HeaderProps> = ({
                   v1.0
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                <Server className="w-3 h-3" /> Target Pipeline: <span className="font-mono text-slate-300">{config?.pipelineId || 'Not Configured'}</span>
-              </p>
+              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+                <Server className="w-3 h-3" /> Target Pipeline: 
+                {config?.pipelineIds && config.pipelineIds.length > 1 ? (
+                  <select
+                    value={activePipelineId}
+                    onChange={(e) => {
+                      setActivePipelineId(e.target.value);
+                      onResetWorkflow();
+                    }}
+                    disabled={isDeploying}
+                    className="bg-slate-800 border border-slate-700 text-slate-200 rounded px-1 py-0.5 text-[11px] outline-none focus:border-amber-500 font-mono"
+                  >
+                    {config.pipelineIds.map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-mono text-slate-300">{activePipelineId || 'Not Configured'}</span>
+                )}
+              </div>
             </div>
           </div>
 

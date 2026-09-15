@@ -7,13 +7,14 @@ export const apiClient = {
     return res.json();
   },
 
-  async getPipelineInfo(): Promise<{
+  async getPipelineInfo(pipelineId?: string): Promise<{
     success: boolean;
     pipeline: Pipeline;
     stageWorkspace?: { id: string; name: string; capacity?: string };
     prodWorkspace?: { id: string; name: string; capacity?: string };
   }> {
-    const res = await fetch('/api/powerbi/pipeline-info');
+    const url = pipelineId ? `/api/powerbi/pipeline-info?pipelineId=${encodeURIComponent(pipelineId)}` : '/api/powerbi/pipeline-info';
+    const res = await fetch(url);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to retrieve pipeline information');
     return data;

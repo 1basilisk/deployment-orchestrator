@@ -16,7 +16,7 @@ let config: DeploymentConfig = {
   tenantId: process.env.AZURE_TENANT_ID || '',
   clientId: process.env.AZURE_CLIENT_ID || '',
   clientSecret: process.env.AZURE_CLIENT_SECRET || '',
-  pipelineId: process.env.POWERBI_PIPELINE_ID || '',
+  pipelineIds: process.env.POWERBI_PIPELINE_IDS ? process.env.POWERBI_PIPELINE_IDS.split(',').map(s => s.trim()).filter(Boolean) : (process.env.POWERBI_PIPELINE_ID ? [process.env.POWERBI_PIPELINE_ID] : []),
   apiBaseUrl: 'https://api.powerbi.com',
   stageWorkspaceId: '',
   prodWorkspaceId: '',
@@ -92,7 +92,7 @@ async function getAccessToken(): Promise<string> {
 
 app.get('/api/config', (_req: Request, res: Response) => {
   res.json({
-    pipelineId: config.pipelineId,
+    pipelineIds: config.pipelineIds,
     apiBaseUrl: config.apiBaseUrl,
     hasClientSecret: Boolean(config.clientSecret),
   });
@@ -141,11 +141,11 @@ app.post('/api/powerbi/test-connection', async (_req: Request, res: Response) =>
   }
 });
 
-app.get('/api/powerbi/pipeline-info', async (_req: Request, res: Response) => {
+app.get('/api/powerbi/pipeline-info', async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const token = await getAccessToken();
-    const pipelineId = config.pipelineId;
+    const pipelineId = (req.query.pipelineId as string) || config.pipelineIds[0];
     
     if (!pipelineId) {
       throw new Error('Pipeline ID is required. Please set Pipeline ID in the Config tab.');
@@ -225,7 +225,7 @@ app.post('/api/powerbi/deploy', async (req: Request, res: Response) => {
 
   try {
     const token = await getAccessToken();
-    const targetPipelineId = pipelineId || config.pipelineId;
+    const targetPipelineId = pipelineId || config.pipelineIds[0];
     
     if (!targetPipelineId) throw new Error("Pipeline ID missing");
 
@@ -287,7 +287,7 @@ app.post('/api/powerbi/deploy', async (req: Request, res: Response) => {
 app.get('/api/powerbi/operations/:operationId', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { operationId } = req.params;
-  const pipelineId = (req.query.pipelineId as string) || config.pipelineId;
+  const pipelineId = (req.query.pipelineId as string) || config.pipelineIds[0];
 
   try {
     const token = await getAccessToken();

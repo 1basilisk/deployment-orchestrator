@@ -78,8 +78,14 @@ Before running this application, you must configure the following in your Micros
    AZURE_TENANT_ID="your_tenant_id_here"
    AZURE_CLIENT_ID="your_client_id_here"
    AZURE_CLIENT_SECRET="your_client_secret_here"
-   POWERBI_PIPELINE_ID="your_pipeline_id_here"
+   
+   # For a single pipeline:
+   POWERBI_PIPELINE_IDS="your_pipeline_id_here"
+   
+   # For multiple pipelines (comma-separated):
+   POWERBI_PIPELINE_IDS="pipeline_1_id,pipeline_2_id,pipeline_3_id"
    ```
+   *Note: If you provide multiple pipeline IDs, the application will display a dropdown selector in the header, allowing you to seamlessly switch between orchestration pipelines.*
 
 3. **Start the Development Server:**
    ```bash
@@ -105,4 +111,5 @@ When deploying to a cloud host, simply ensure your `AZURE_TENANT_ID`, `AZURE_CLI
 
 ## 🔒 Security Posture
 
+* **In-Memory Token Handling:** Access tokens are stored ephemerally in the backend node process.
 * **Server-Side API Proxy:** The React frontend never talks to Microsoft APIs directly. It only knows about the local `/api/` endpoints, guaranteeing that Client Secrets never touch the user's browser or network payload.

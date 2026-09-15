@@ -90,7 +90,7 @@ export interface DeploymentConfig {
   tenantId: string;
   clientId: string;
   clientSecret: string;
-  pipelineId: string;
+  pipelineIds: string[];
   apiBaseUrl: string;
   stageWorkspaceId?: string;
   prodWorkspaceId?: string;

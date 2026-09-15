@@ -64,6 +64,7 @@ const INITIAL_STEPS: StepState[] = [
 export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<'pipeline' | 'logs'>('pipeline');
+  const [activePipelineId, setActivePipelineId] = useState<string>('');
 
   // Config & Logs
   const [config, setConfig] = useState<DeploymentConfig | null>(null);
@@ -135,6 +136,14 @@ export default function App() {
   const loadConfig = useCallback(async () => {
     try {
       const cfg = await apiClient.getConfig();
+      if (cfg.pipelineIds && cfg.pipelineIds.length > 0) {
+        setActivePipelineId((current) => {
+          if (!current || !cfg.pipelineIds.includes(current)) {
+            return cfg.pipelineIds[0];
+          }
+          return current;
+        });
+      }
       setConfig(cfg);
     } catch (err) {
       console.error('Failed to load config', err);
@@ -184,7 +193,7 @@ export default function App() {
     updateStepState(1, { status: 'running', startedAt: new Date().toISOString(), error: undefined });
 
     try {
-      const data = await apiClient.getPipelineInfo();
+      const data = await apiClient.getPipelineInfo(activePipelineId);
       setPipelineData(data);
       updateStepState(1, {
         status: 'success',
@@ -254,7 +263,7 @@ export default function App() {
     try {
       // 1. Trigger deployment
       const triggerRes = await apiClient.triggerDeploy({
-        pipelineId: config?.pipelineId,
+        pipelineId: activePipelineId,
         sourceStageOrder: 1,
         targetStageOrder: 2,
         reportIds: selectedReportIds,
@@ -281,7 +290,7 @@ export default function App() {
         setPollCount(pollAttempt);
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
-        const statusRes = await apiClient.getOperationStatus(opId, config?.pipelineId);
+        const statusRes = await apiClient.getOperationStatus(opId, activePipelineId);
         setOperation(statusRes.operation);
         await refreshLogs();
 
@@ -500,6 +509,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         config={config}
+        activePipelineId={activePipelineId}
+        setActivePipelineId={setActivePipelineId}
         logsCount={logs.length}
         onResetWorkflow={handleResetWorkflow}
         isDeploying={isAnyExecuting}
@@ -640,7 +651,7 @@ export default function App() {
           <div className="flex items-center gap-3 font-mono text-[11px]">
             <span>Mode: Live Entra ID</span>
             <span>&bull;</span>
-            <span>Pipeline: {config?.pipelineId || 'Not set'}</span>
+            <span>Pipeline: {activePipelineId || 'Not set'}</span>
           </div>
         </div>
       </footer>
