@@ -111,5 +111,6 @@ When deploying to a cloud host, simply ensure your `AZURE_TENANT_ID`, `AZURE_CLI
 
 ## 🔒 Security Posture
 
+* **No UI Input:** The app intentionally lacks a UI for entering Azure secrets. This prevents exposure on public-facing URLs.
 * **In-Memory Token Handling:** Access tokens are stored ephemerally in the backend node process.
 * **Server-Side API Proxy:** The React frontend never talks to Microsoft APIs directly. It only knows about the local `/api/` endpoints, guaranteeing that Client Secrets never touch the user's browser or network payload.

@@ -16,7 +16,9 @@ let config: DeploymentConfig = {
   tenantId: process.env.AZURE_TENANT_ID || '',
   clientId: process.env.AZURE_CLIENT_ID || '',
   clientSecret: process.env.AZURE_CLIENT_SECRET || '',
-  pipelineIds: process.env.POWERBI_PIPELINE_IDS ? process.env.POWERBI_PIPELINE_IDS.split(',').map(s => s.trim()).filter(Boolean) : (process.env.POWERBI_PIPELINE_ID ? [process.env.POWERBI_PIPELINE_ID] : []),
+  pipelineIds: process.env.POWERBI_PIPELINE_IDS 
+    ? process.env.POWERBI_PIPELINE_IDS.split(',').map(s => s.trim()).filter(Boolean) 
+    : (process.env.POWERBI_PIPELINE_ID ? process.env.POWERBI_PIPELINE_ID.split(',').map(s => s.trim()).filter(Boolean) : []),
   apiBaseUrl: 'https://api.powerbi.com',
   stageWorkspaceId: '',
   prodWorkspaceId: '',

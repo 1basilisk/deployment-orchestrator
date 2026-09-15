@@ -228,22 +228,12 @@ export default function App() {
       setStageReports(data.reports);
       setStageDatasets(data.datasets);
 
-      // Default select first two reports and primary dataset
-      const defaultReports = data.reports.slice(0, 2).map((r) => r.id);
-      const defaultDatasets = data.datasets.slice(0, 1).map((d) => d.id);
-      setSelectedReportIds(defaultReports);
-      setSelectedDatasetIds(defaultDatasets);
-
       updateStepState(2, {
         status: 'success',
         completedAt: new Date().toISOString(),
         details: { reportsCount: data.reports.length, datasetsCount: data.datasets.length },
       });
       await refreshLogs();
-
-      if (advance) {
-        setCurrentStep(3);
-      }
     } catch (err: any) {
       updateStepState(2, { status: 'failed', error: err.message });
       await refreshLogs();
@@ -566,7 +556,7 @@ export default function App() {
               {currentStep === 3 && (
                 <Step3Deploy
                   step={steps[2]}
-                  onTriggerDeploy={() => executeStep3(false)}
+                  onTriggerDeploy={() => executeStep3(isAutoAdvancing)}
                   isRunning={isStep3Running}
                   operation={operation}
                   pollCount={pollCount}
@@ -584,8 +574,8 @@ export default function App() {
               {currentStep === 4 && (
                 <Step4Parameters
                   step={steps[3]}
-                  onFetchParameters={() => executeStep4Fetch(false)}
-                  onSaveParameters={() => handleSaveParameters(false)}
+                  onFetchParameters={() => executeStep4Fetch(isAutoAdvancing)}
+                  onSaveParameters={() => handleSaveParameters(isAutoAdvancing)}
                   isRunning={isStep4Running}
                   isSaving={isSavingParams}
                   parameters={parameters}
@@ -604,7 +594,7 @@ export default function App() {
               {currentStep === 5 && (
                 <Step5Refresh
                   step={steps[4]}
-                  onTriggerRefresh={() => executeStep5(false)}
+                  onTriggerRefresh={() => executeStep5(isAutoAdvancing)}
                   isRunning={isStep5Running}
                   refreshId={refreshId}
                   activeDatasetName={stageDatasets.find((d) => d.id === getActiveDatasetId())?.name}
