@@ -80,7 +80,6 @@ Before running this application, you must configure the following in your Micros
    AZURE_CLIENT_SECRET="your_client_secret_here"
    POWERBI_PIPELINE_ID="your_pipeline_id_here"
    ```
-   *Note: For security reasons, the UI for configuring credentials has been removed. The application relies strictly on this `.env` file to ensure credentials are never exposed via a web interface.*
 
 3. **Start the Development Server:**
    ```bash
@@ -106,6 +105,4 @@ When deploying to a cloud host, simply ensure your `AZURE_TENANT_ID`, `AZURE_CLI
 
 ## 🔒 Security Posture
 
-* **No UI Input:** The app intentionally lacks a UI for entering Azure secrets. This prevents exposure on public-facing URLs.
-* **In-Memory Token Handling:** Access tokens are stored ephemerally in the backend node process.
 * **Server-Side API Proxy:** The React frontend never talks to Microsoft APIs directly. It only knows about the local `/api/` endpoints, guaranteeing that Client Secrets never touch the user's browser or network payload.
