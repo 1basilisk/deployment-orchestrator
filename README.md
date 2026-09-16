@@ -1,11 +1,12 @@
 # Power BI Deployment Orchestrator
 
-A full-stack web application designed to orchestrate and automate Microsoft Power BI deployment pipelines. Built with React (frontend) and Express (backend), this application securely manages Azure Entra ID Service Principal credentials to automate report deployments, dataset parameter updates, and semantic model refreshes.
+A full-stack web application designed to orchestrate and automate Microsoft Power BI deployment pipelines. Built with React (frontend) and Express (backend), this application securely manages Azure Entra ID Service Principal credentials to automate report deployments, dataset ownership takeovers, parameter updates, and semantic model refreshes.
 
 ## 🚀 Features
 
 * **Pipeline Discovery:** Automatically fetches workspace bindings and artifact lists (reports, datasets) for a given Power BI Deployment Pipeline.
 * **Stage-to-Stage Deployment:** Triggers the promotion of selected reports and datasets from a source stage (e.g., Test) to a target stage (e.g., Production).
+* **Dataset Takeover:** Automatically takes ownership of deployed datasets in the target workspace, which is required before updating parameters or triggering refreshes via a Service Principal.
 * **Parameter Management:** Inspects dataset parameters post-deployment and allows you to dynamically update them (e.g., pointing a database connection from a test server to a production server).
 * **Automated Refresh:** Triggers and polls cloud-side dataset refreshes to ensure data is populated after a deployment and parameter update.
 * **Secure Architecture:** Eliminates client-side credential exposure. All OAuth token acquisition and Power BI REST API communications occur strictly on the backend Node.js (Express) server.
@@ -17,6 +18,16 @@ The application operates on a robust Full-Stack architecture to ensure security.
 
 * **Frontend (React + Vite + Tailwind):** Renders the multi-step deployment wizard and logs view. It communicates exclusively with the local backend.
 * **Backend (Node.js + Express):** Acts as a secure proxy. It holds the Azure `client_secret` in memory, acquires temporary OAuth tokens from Azure Entra ID, and forwards requests to the Power BI REST API.
+
+### Deployment Workflow (7 Steps)
+The application automates the following deployment sequence:
+1. **Workspace & Pipeline Info:** Discovers stages and bindings.
+2. **List Stage Reports:** Enumerates available reports and datasets in the source stage.
+3. **Check Stage Parameters:** Reviews pre-deployment parameters (optional).
+4. **Deploy to Production:** Triggers the pipeline deployment and verifies a 200 OK status.
+5. **Take Over Datasets:** Assumes ownership of the newly deployed datasets in the target workspace.
+6. **Check & Update Prod Parameters:** Configures production endpoints and server addresses.
+7. **Trigger & Verify Refresh:** Initiates and polls for successful semantic model refreshes.
 
 ### Architecture Diagram
 
@@ -46,6 +57,7 @@ sequenceDiagram
     Server->>PBI: POST /pipelines/{id}/deploy (w/ Token)
     PBI-->>Server: 202 Accepted (Operation ID)
     Server-->>UI: Success (Operation ID)
+    
     UI->>Server: Poll GET /api/powerbi/operations/{id}
     Server->>PBI: GET Operation Status
     PBI-->>Server: 200 OK (Succeeded)
@@ -107,7 +119,8 @@ npm run build
 # 2. Start the compiled production server
 npm start
 ```
-When deploying to a cloud host, simply ensure your `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `POWERBI_PIPELINE_ID` are set as Environment Variables in your hosting provider's dashboard.
+
+When deploying to a cloud host, simply ensure your `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `POWERBI_PIPELINE_IDS` are set as Environment Variables in your hosting provider's dashboard.
 
 ## 🔒 Security Posture
 

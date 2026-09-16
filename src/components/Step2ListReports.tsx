@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileBarChart2, Database, CheckSquare, Square, ArrowRight, Play, AlertCircle, ExternalLink, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileBarChart2, Database, CheckSquare, Square, ArrowRight, Play, AlertCircle, ExternalLink, Calendar, Search } from 'lucide-react';
 import { StepState, Report, Dataset } from '../types';
 
 interface Step2ListReportsProps {
@@ -37,6 +37,11 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
   onDeselectAll,
   onContinue,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const filteredReports = reports.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredDatasets = datasets.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()) || d.id.toLowerCase().includes(searchQuery.toLowerCase()));
+
   const totalSelected = selectedReportIds.length + selectedDatasetIds.length;
 
   return (
@@ -88,42 +93,43 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
 
       {reports.length > 0 || datasets.length > 0 ? (
         <div className="mt-6 space-y-6">
-          {/* Controls bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-neutral-950 p-3 rounded-lg border border-neutral-800 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-neutral-300">Artifact Selection:</span>
-              <span className="bg-amber-900/40 text-amber-500 font-bold px-2 py-0.5 rounded-full text-[11px] border border-amber-500/20">
-                {selectedReportIds.length} of {reports.length} Reports
-              </span>
-              <span className="bg-blue-900/40 text-blue-400 font-bold px-2 py-0.5 rounded-full text-[11px] border border-blue-500/20">
-                {selectedDatasetIds.length} of {datasets.length} Datasets
-              </span>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-neutral-950 p-3 rounded-lg border border-neutral-800 text-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="font-semibold text-neutral-300">Selection:</span>
+                <span className="bg-amber-900/40 text-amber-500 font-bold px-2 py-0.5 rounded-full text-[11px] border border-amber-500/20">
+                  {selectedReportIds.length} / {reports.length} Rep
+                </span>
+                <span className="bg-blue-900/40 text-blue-400 font-bold px-2 py-0.5 rounded-full text-[11px] border border-blue-500/20">
+                  {selectedDatasetIds.length} / {datasets.length} Data
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={onSelectAll} className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs">Select All</button>
+                <span className="text-neutral-700">|</span>
+                <button onClick={onDeselectAll} className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs">Deselect All</button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                id="btn-select-all"
-                onClick={onSelectAll}
-                className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs"
-              >
-                Select All
-              </button>
-              <span className="text-neutral-700">|</span>
-              <button
-                id="btn-deselect-all"
-                onClick={onDeselectAll}
-                className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs"
-              >
-                Deselect All
-              </button>
+            
+            <div className="relative w-full md:w-64">
+              <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by name or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-neutral-900 border border-neutral-700 text-neutral-200 text-[11px] rounded-lg pl-8 pr-3 py-1.5 w-full focus:outline-none focus:border-amber-500 transition-colors placeholder:text-neutral-500"
+              />
             </div>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Reports Table */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                 <FileBarChart2 className="w-3.5 h-3.5 text-amber-500" />
-                <span>Power BI Reports ({reports.length})</span>
+                <span>Power BI Reports ({filteredReports.length}{searchQuery ? ` of ${reports.length}` : ''})</span>
               </h4>
               {onToggleAutoSelectDataset && (
                 <label className="flex items-center gap-2 cursor-pointer group">
@@ -143,7 +149,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
               )}
             </div>
             <div className="border border-neutral-800 rounded-lg overflow-hidden divide-y divide-neutral-800 shadow-xl">
-              {reports.map((report) => {
+              {filteredReports.map((report) => {
                 const isSelected = selectedReportIds.includes(report.id);
                 return (
                   <div
@@ -208,10 +214,10 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2 flex items-center gap-1.5">
               <Database className="w-3.5 h-3.5 text-blue-500" />
-              <span>Semantic Models / Datasets ({datasets.length})</span>
+              <span>Semantic Models / Datasets ({filteredDatasets.length}{searchQuery ? ` of ${datasets.length}` : ''})</span>
             </h4>
             <div className="border border-neutral-800 rounded-lg overflow-hidden divide-y divide-neutral-800 shadow-xl">
-              {datasets.map((dataset) => {
+              {filteredDatasets.map((dataset) => {
                 const isSelected = selectedDatasetIds.includes(dataset.id);
                 return (
                   <div
@@ -250,6 +256,8 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                 );
               })}
             </div>
+          </div>
+
           </div>
 
           {/* Continue button */}

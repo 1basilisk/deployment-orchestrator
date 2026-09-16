@@ -61,8 +61,8 @@ export const Stepper: React.FC<StepperProps> = ({
         />
       </div>
 
-      {/* 6 Step Nodes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* 7 Step Nodes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
         {steps.map((step) => {
           const isCurrent = currentStep === step.id;
           const isSuccess = step.status === 'success';

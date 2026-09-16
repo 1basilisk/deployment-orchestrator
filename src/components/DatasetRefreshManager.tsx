@@ -123,7 +123,7 @@ export const DatasetRefreshManager: React.FC<DatasetRefreshManagerProps> = ({
             >
               <Database className="w-3.5 h-3.5" />
               {d.name}
-              {d.hasDuplicateName && <AlertCircle className="w-3.5 h-3.5 text-rose-500" title="Duplicate name detected in Production workspace" />}
+              {d.hasDuplicateName && <span title="Duplicate name detected in Production workspace"><AlertCircle className="w-3.5 h-3.5 text-rose-500" /></span>}
               {status === 'Completed' && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
               {status === 'Failed' && <AlertCircle className="w-3 h-3 text-rose-500" />}
               {(status === 'Executing' || status === 'Unknown') && <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />}

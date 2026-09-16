@@ -7,6 +7,7 @@ import { Step3StageParameters } from './components/Step3StageParameters';
 import { Step3Deploy } from './components/Step3Deploy';
 import { Step4Parameters } from './components/Step4Parameters';
 import { Step5Refresh } from './components/Step5Refresh';
+import { Step5Takeover } from './components/Step5Takeover';
 import { LogsView } from './components/LogsView';
 import { apiClient } from './services/api';
 import {
@@ -25,8 +26,9 @@ const INITIAL_STEPS: StepState[] = [
   { id: 2, title: 'List Stage Reports', shortDesc: 'Enumerate reports & models', status: 'idle' },
   { id: 3, title: 'Check Stage Parameters (Optional)', shortDesc: 'Review pre-deployment parameters', status: 'idle' },
   { id: 4, title: 'Deploy to Production', shortDesc: 'Trigger deploy & verify 200', status: 'idle' },
-  { id: 5, title: 'Check & Update Prod Parameters', shortDesc: 'Configure production endpoints', status: 'idle' },
-  { id: 6, title: 'Trigger & Verify Refresh', shortDesc: 'Trigger & poll semantic refresh', status: 'idle' },
+  { id: 5, title: 'Take Over Datasets', shortDesc: 'Take ownership of deployed datasets', status: 'idle' },
+  { id: 6, title: 'Check & Update Prod Parameters', shortDesc: 'Configure production endpoints', status: 'idle' },
+  { id: 7, title: 'Trigger & Verify Refresh', shortDesc: 'Trigger & poll semantic refresh', status: 'idle' },
 ];
 
 export default function App() {
@@ -67,6 +69,7 @@ export default function App() {
   const [operation, setOperation] = useState<DeploymentOperation | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const [isStep4Running, setIsStep4Running] = useState(false);
+  const [isStep5Running, setIsStep5Running] = useState(false);
   const [deploymentNote, setDeploymentNote] = useState('Automated promotion from Stage to Production');
 
   const updateStepState = useCallback((id: StepId, patch: Partial<StepState>) => {
@@ -189,19 +192,19 @@ export default function App() {
 
         if (statusRes.operation.status === 'Succeeded') {
           isCompleted = true;
-          updateStepState(4, { status: 'success', completedAt: new Date().toISOString() });
           
-          // Fetch prod artifacts to get the actual production IDs
-          const pWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId;
+          let pWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId;
           if (pWsId) {
             try {
               const prodArtifacts = await apiClient.getStageArtifacts(pWsId);
               setProdReports(prodArtifacts.reports);
               setProdDatasets(prodArtifacts.datasets);
-            } catch (e) {
+            } catch (e: any) {
               console.error("Failed to fetch prod artifacts", e);
             }
           }
+          updateStepState(4, { status: 'success', completedAt: new Date().toISOString() });
+
           if (advance) {
             setCurrentStep(5);
           }
@@ -222,8 +225,38 @@ export default function App() {
     }
   };
 
+  const executeStep5 = async (advance = isAutoAdvancing) => {
+    setIsStep5Running(true);
+    updateStepState(5, { status: 'running', startedAt: new Date().toISOString(), error: undefined });
+    try {
+      let pWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId;
+      if (!pWsId) throw new Error("Production Workspace ID not found");
+
+      const selectedStageDatasets = stageDatasets.filter(d => selectedDatasetIds.includes(d.id));
+      const prodDatasetIdsToTakeOver = selectedStageDatasets.map(sd => {
+        const pd = prodDatasets.find(p => p.name === sd.name);
+        return pd ? pd.id : null;
+      }).filter(id => id !== null) as string[];
+
+      if (prodDatasetIdsToTakeOver.length > 0) {
+        await apiClient.takeoverDatasets(pWsId, prodDatasetIdsToTakeOver);
+        await refreshLogs();
+      }
+      
+      updateStepState(5, { status: 'success', completedAt: new Date().toISOString() });
+      if (advance) {
+        setCurrentStep(6);
+      }
+    } catch (err: any) {
+      updateStepState(5, { status: 'failed', error: err.message });
+      await refreshLogs();
+    } finally {
+      setIsStep5Running(false);
+    }
+  };
+
   const isAnyExecuting =
-    isStep1Running || isStep2Running || isStep4Running ||
+    isStep1Running || isStep2Running || isStep4Running || isStep5Running ||
     (operation?.status === 'Executing');
 
   const selectedDatasetsFull = stageDatasets.filter(d => selectedDatasetIds.includes(d.id));
@@ -234,6 +267,14 @@ export default function App() {
     ...d,
     hasDuplicateName: arr.filter(x => x.name === d.name).length > 1
   }));
+  
+  const selectedReportNames = selectedReportsFull.map(r => r.name);
+  const prodSelectedReportsFull = prodReports.filter(r => selectedReportNames.includes(r.name));
+  
+  const isProdContext = currentStep >= 5;
+  const displayReports = (isProdContext && prodSelectedReportsFull.length > 0) ? prodSelectedReportsFull : selectedReportsFull;
+  const displayDatasets = (isProdContext && prodSelectedDatasetsFull.length > 0) ? prodSelectedDatasetsFull : selectedDatasetsFull;
+  const contextLabel = isProdContext ? 'Production' : 'Stage';
   const stageWsId = pipelineData?.stageWorkspace?.id || config?.stageWorkspaceId || '';
   const prodWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId || '';
 
@@ -269,13 +310,16 @@ export default function App() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h5 className="text-[11px] font-bold text-neutral-500 uppercase mb-3">Reports ({selectedReportsFull.length})</h5>
-                    {selectedReportsFull.length > 0 ? (
-                      <ul className="space-y-1.5">
-                        {selectedReportsFull.map(r => (
-                          <li key={r.id} className="text-xs text-neutral-300 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-sm bg-blue-500/80"></div>
-                            {r.name}
+                    <h5 className="text-[11px] font-bold text-neutral-500 uppercase mb-3">Reports ({displayReports.length}) - {contextLabel}</h5>
+                    {displayReports.length > 0 ? (
+                      <ul className="space-y-2">
+                        {displayReports.map(r => (
+                          <li key={r.id} className="flex flex-col gap-0.5">
+                            <div className="text-xs text-neutral-300 flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-sm bg-blue-500/80 shrink-0"></div>
+                              <span className="font-semibold truncate" title={r.name}>{r.name}</span>
+                            </div>
+                            <span className="text-[10px] text-neutral-500 font-mono pl-3.5 break-all">ID: {r.id}</span>
                           </li>
                         ))}
                       </ul>
@@ -284,13 +328,16 @@ export default function App() {
                     )}
                   </div>
                   <div>
-                    <h5 className="text-[11px] font-bold text-neutral-500 uppercase mb-3">Datasets ({selectedDatasetsFull.length})</h5>
-                    {selectedDatasetsFull.length > 0 ? (
-                      <ul className="space-y-1.5">
-                        {selectedDatasetsFull.map(d => (
-                          <li key={d.id} className="text-xs text-neutral-300 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-sm bg-amber-500/80"></div>
-                            {d.name}
+                    <h5 className="text-[11px] font-bold text-neutral-500 uppercase mb-3">Datasets ({displayDatasets.length}) - {contextLabel}</h5>
+                    {displayDatasets.length > 0 ? (
+                      <ul className="space-y-2">
+                        {displayDatasets.map(d => (
+                          <li key={d.id} className="flex flex-col gap-0.5">
+                            <div className="text-xs text-neutral-300 flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-sm bg-amber-500/80 shrink-0"></div>
+                              <span className="font-semibold truncate" title={d.name}>{d.name}</span>
+                            </div>
+                            <span className="text-[10px] text-neutral-500 font-mono pl-3.5 break-all">ID: {d.id}</span>
                           </li>
                         ))}
                       </ul>
@@ -373,7 +420,10 @@ export default function App() {
                   datasets={selectedDatasetsFull}
                   workspaceId={stageWsId}
                   onFetchParameters={apiClient.getDatasetParameters}
-                  onContinue={() => setCurrentStep(4)}
+                  onContinue={() => {
+                    updateStepState(3, { status: 'success', completedAt: new Date().toISOString() });
+                    setCurrentStep(4);
+                  }}
                 />
               )}
 
@@ -393,24 +443,40 @@ export default function App() {
               )}
 
               {currentStep === 5 && (
-                <Step4Parameters
+                <Step5Takeover
                   step={steps[4]}
+                  datasets={prodSelectedDatasetsFull.length > 0 ? prodSelectedDatasetsFull : selectedDatasetsFull}
+                  onExecute={() => executeStep5(isAutoAdvancing)}
+                  isRunning={isStep5Running}
+                  onContinue={() => setCurrentStep(6)}
+                />
+              )}
+              {currentStep === 6 && (
+                <Step4Parameters
+                  step={steps[5]}
                   datasets={prodSelectedDatasetsFull.length > 0 ? prodSelectedDatasetsFull : selectedDatasetsFull}
                   workspaceId={prodWsId}
                   onFetchParameters={apiClient.getDatasetParameters}
                   onSaveParameters={async (datasetId, wsId, updates) => { await apiClient.updateDatasetParameters(datasetId, updates, wsId); }}
-                  onContinue={() => setCurrentStep(6)}
+                  onContinue={() => {
+                    updateStepState(6, { status: 'success', completedAt: new Date().toISOString() });
+                    setCurrentStep(7);
+                  }}
                 />
               )}
 
-              {currentStep === 6 && (
+              {currentStep === 7 && (
                 <Step5Refresh
-                  step={steps[5]}
+                  step={steps[6]}
                   datasets={prodSelectedDatasetsFull.length > 0 ? prodSelectedDatasetsFull : selectedDatasetsFull}
                   workspaceId={prodWsId}
                   onTriggerRefresh={apiClient.triggerRefresh}
                   onCheckStatus={apiClient.getRefreshStatus}
-                  onContinue={() => alert("Deployment pipeline complete!")}
+                  onContinue={() => {
+                    updateStepState(7, { status: 'success', completedAt: new Date().toISOString() });
+                    alert("Deployment pipeline complete! The workflow will now reset.");
+                    handleResetWorkflow();
+                  }}
                   onRefreshLogs={refreshLogs}
                 />
               )}

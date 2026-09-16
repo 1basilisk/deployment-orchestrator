@@ -64,6 +64,16 @@ export const apiClient = {
     return data;
   },
 
+  async takeoverDatasets(workspaceId: string, datasetIds: string[]): Promise<{ success: boolean; message: string; results: any[] }> {
+    const res = await fetch(`/api/powerbi/workspace/${encodeURIComponent(workspaceId)}/datasets/takeover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ datasetIds }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to take over datasets');
+    return data;
+  },
   async getDatasetParameters(datasetId: string, workspaceId?: string): Promise<{
     success: boolean;
     datasetId: string;

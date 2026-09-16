@@ -2,27 +2,21 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import dotenv from 'dotenv';
 import { ApiTransaction, DeploymentConfig } from './src/types.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = 3000;
-
 app.use(express.json());
 
 // In-memory configuration store
 let config: DeploymentConfig = {
-  tenantId: process.env.AZURE_TENANT_ID || '',
-  clientId: process.env.AZURE_CLIENT_ID || '',
-  clientSecret: process.env.AZURE_CLIENT_SECRET || '',
-  pipelineIds: process.env.POWERBI_PIPELINE_IDS 
-    ? process.env.POWERBI_PIPELINE_IDS.split(',').map(s => s.trim()).filter(Boolean) 
-    : (process.env.POWERBI_PIPELINE_ID ? process.env.POWERBI_PIPELINE_ID.split(',').map(s => s.trim()).filter(Boolean) : []),
+  tenantId: 'mock-tenant-id',
+  clientId: 'mock-client-id',
+  clientSecret: 'mock-client-secret',
+  pipelineIds: ['mock-pipeline-123'],
   apiBaseUrl: 'https://api.powerbi.com',
-  stageWorkspaceId: '',
-  prodWorkspaceId: '',
+  stageWorkspaceId: 'mock-stage-ws',
+  prodWorkspaceId: 'mock-prod-ws',
 };
 
 // In-memory API transaction log
@@ -42,7 +36,7 @@ function recordLog(
     try {
       return obj ? JSON.parse(JSON.stringify(obj)) : undefined;
     } catch (e) {
-      return { _error: 'Unserializable payload containing circular references' };
+      return { _error: 'Unserializable payload' };
     }
   };
 
@@ -65,419 +59,292 @@ function recordLog(
   return logItem;
 }
 
-// Azure Entra ID token helper
-async function getAccessToken(): Promise<string> {
-  if (!config.tenantId || !config.clientId || !config.clientSecret) {
-    throw new Error('Azure Entra ID credentials missing. Please configure Tenant ID, Client ID, and Secret in Config.');
-  }
+// ---------------------------------------------------------
+// MOCK DATA
+// ---------------------------------------------------------
 
-  const tokenEndpoint = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
-  const startTime = Date.now();
-  const params = new URLSearchParams();
-  params.append('client_id', config.clientId);
-  params.append('client_secret', config.clientSecret);
-  params.append('scope', 'https://analysis.windows.net/powerbi/api/.default');
-  params.append('grant_type', 'client_credentials');
+const mockStageReports = [
+  { id: "r-stage-1", name: "Finance Analytics", datasetId: "ds-stage-1", reportType: "PowerBIReport", modifiedDateTime: new Date().toISOString() },
+  { id: "r-stage-2", name: "Sales Dashboard", datasetId: "ds-stage-2", reportType: "PowerBIReport", modifiedDateTime: new Date().toISOString() },
+  { id: "r-stage-3", name: "Employee Activity", datasetId: "ds-stage-3", reportType: "PowerBIReport", modifiedDateTime: new Date().toISOString() },
+];
 
-  try {
-    console.log(`\n[PBI API Call] POST ${tokenEndpoint}`); const res = await fetch(tokenEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-    const duration = Date.now() - startTime;
-    const data = await res.json() as any;
+const mockStageDatasets = [
+  { id: "ds-stage-1", name: "Finance Analytics", isRefreshable: true },
+  { id: "ds-stage-2", name: "Sales Dashboard", isRefreshable: true },
+  { id: "ds-stage-3", name: "Employee Activity", isRefreshable: true },
+];
 
-    recordLog('Authenticate Entra ID', 'POST', tokenEndpoint, res.status, duration, { client_id: config.clientId, scope: 'powerbi/api/.default' }, { token_type: data.token_type, expires_in: data.expires_in, error: data.error }, data.error_description);
+const mockProdReports = [
+  { id: "r-prod-1", name: "Finance Analytics", datasetId: "ds-prod-1", reportType: "PowerBIReport", modifiedDateTime: new Date().toISOString() },
+  { id: "r-prod-2", name: "Sales Dashboard", datasetId: "ds-prod-2", reportType: "PowerBIReport", modifiedDateTime: new Date().toISOString() },
+];
 
-    if (!res.ok || !data.access_token) {
-      throw new Error(data.error_description || `Failed to authenticate with Azure Entra ID (${res.status})`);
-    }
+const mockProdDatasets = [
+  { id: "ds-prod-1", name: "Finance Analytics", isRefreshable: true },
+  { id: "ds-prod-2", name: "Sales Dashboard", isRefreshable: true },
+  { id: "ds-prod-1-dup", name: "Finance Analytics", isRefreshable: true }, // Simulating duplicate
+];
 
-    return data.access_token;
-  } catch (err: any) {
-    recordLog('Authenticate Entra ID', 'POST', tokenEndpoint, 500, Date.now() - startTime, { client_id: config.clientId }, null, err.message);
-    throw err;
-  }
-}
+const mockParamsData: Record<string, any> = {
+  "ds-stage-1": [
+    { name: "ServerUrl", type: "Text", currentValue: "stage-db-1.internal", isRequired: true },
+    { name: "Database", type: "Text", currentValue: "finance_stage", isRequired: true }
+  ],
+  "ds-stage-2": [
+    { name: "ServerUrl", type: "Text", currentValue: "stage-db-2.internal", isRequired: true },
+    { name: "Database", type: "Text", currentValue: "sales_stage", isRequired: true }
+  ],
+  "ds-prod-1": [
+    { name: "ServerUrl", type: "Text", currentValue: "prod-db-1.internal", isRequired: true },
+    { name: "Database", type: "Text", currentValue: "finance_prod", isRequired: true }
+  ],
+  "ds-prod-2": [
+    { name: "ServerUrl", type: "Text", currentValue: "prod-db-2.internal", isRequired: true },
+    { name: "Database", type: "Text", currentValue: "sales_prod", isRequired: true }
+  ],
+  "ds-prod-1-dup": [
+    { name: "ServerUrl", type: "Text", currentValue: "prod-db-1-dup.internal", isRequired: true },
+    { name: "Database", type: "Text", currentValue: "finance_prod_old", isRequired: true }
+  ]
+};
 
-// ---------------- API ROUTES ----------------
+const deploymentOperations: Record<string, any> = {};
+const refreshes: Record<string, any> = {};
 
-app.get('/api/config', (_req: Request, res: Response) => {
+// ---------------------------------------------------------
+// API ROUTES
+// ---------------------------------------------------------
+
+app.get('/api/config', (req: Request, res: Response) => {
   res.json({
-    pipelineIds: config.pipelineIds,
-    apiBaseUrl: config.apiBaseUrl,
-    hasClientSecret: Boolean(config.clientSecret),
+    ...config,
+    hasClientSecret: true,
   });
 });
 
-app.get('/api/logs', (_req: Request, res: Response) => {
+app.post('/api/config', (req: Request, res: Response) => {
+  config = { ...config, ...req.body };
+  res.json({ success: true, message: 'Configuration updated successfully.' });
+});
+
+app.get('/api/logs', (req: Request, res: Response) => {
   res.json(apiLogs);
-});
-
-app.delete('/api/logs', (_req: Request, res: Response) => {
-  apiLogs.length = 0;
-  res.json({ success: true, count: 0 });
-});
-
-app.post('/api/powerbi/test-connection', async (_req: Request, res: Response) => {
-  const startTime = Date.now();
-  try {
-    const token = await getAccessToken();
-    const testUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines`;
-    console.log(`\n[PBI API Call] GET ${testUrl}`); const resp = await fetch(testUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    const duration = Date.now() - startTime;
-    const data = await resp.json() as any;
-
-    recordLog('Test Connection', 'GET', testUrl, resp.status, duration, null, data, resp.ok ? undefined : 'Error testing connection');
-
-    if (!resp.ok) {
-      res.status(resp.status).json({
-        success: false,
-        error: data.error?.message || `Power BI API responded with status ${resp.status}`,
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: 'Successfully authenticated with Azure Entra ID and verified Power BI REST API access!',
-      pipelinesCount: data.value?.length || 0,
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
 });
 
 app.get('/api/powerbi/pipeline-info', async (req: Request, res: Response) => {
   const startTime = Date.now();
-  try {
-    const token = await getAccessToken();
-    const pipelineId = (req.query.pipelineId as string) || config.pipelineIds[0];
+  const pipelineId = req.query.pipelineId as string || 'mock-pipeline-123';
+  
+  setTimeout(() => {
+    const pipeline = {
+      id: pipelineId,
+      displayName: 'Mock Deployment Pipeline',
+      stages: [
+        { order: 0, displayName: 'Development', workspaceId: 'mock-dev-ws', workspaceName: 'Mock Dev Workspace' },
+        { order: 1, displayName: 'Test (Stage)', workspaceId: 'mock-stage-ws', workspaceName: 'Mock Stage Workspace' },
+        { order: 2, displayName: 'Production', workspaceId: 'mock-prod-ws', workspaceName: 'Mock Prod Workspace' },
+      ]
+    };
+
+    recordLog('Fetch Pipeline Info', 'GET', `/api/powerbi/pipeline-info?pipelineId=${pipelineId}`, 200, Date.now() - startTime, null, { pipeline });
     
-    if (!pipelineId) {
-      throw new Error('Pipeline ID is required. Please set Pipeline ID in the Config tab.');
-    }
-
-    const stagesUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines/${pipelineId}/stages`;
-    console.log(`\n[PBI API Call] GET ${stagesUrl}`); const stagesResp = await fetch(stagesUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const stagesData = await stagesResp.json() as any;
-
-    recordLog('Fetch Pipeline Stages', 'GET', stagesUrl, stagesResp.status, Date.now() - startTime, null, stagesData);
-
-    if (!stagesResp.ok) {
-      throw new Error(stagesData.error?.message || `Failed to fetch pipeline stages (${stagesResp.status})`);
-    }
-
-    const stages = stagesData.value || [];
-    const stage1 = stages.find((s: any) => s.order === 1);
-    const stage2 = stages.find((s: any) => s.order === 2);
-
     res.json({
       success: true,
-      pipeline: {
-        id: pipelineId,
-        stages,
-      },
-      stageWorkspace: stage1 ? { id: stage1.workspaceId, name: stage1.workspaceName } : null,
-      prodWorkspace: stage2 ? { id: stage2.workspaceId, name: stage2.workspaceName } : null,
+      pipeline,
+      stageWorkspace: pipeline.stages[1],
+      prodWorkspace: pipeline.stages[2]
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  }, 300);
 });
 
 app.get('/api/powerbi/stage-artifacts', async (req: Request, res: Response) => {
   const startTime = Date.now();
-  const workspaceId = (req.query.workspaceId as string) || config.stageWorkspaceId;
+  const workspaceId = req.query.workspaceId as string || 'mock-stage-ws';
+  
+  setTimeout(() => {
+    const isStage = workspaceId.includes('stage');
+    const reports = isStage ? mockStageReports : mockProdReports;
+    const datasets = isStage ? mockStageDatasets : mockProdDatasets;
 
-  if (!workspaceId) {
-    return res.status(400).json({ success: false, error: 'Stage Workspace ID is missing' });
-  }
-
-  try {
-    const token = await getAccessToken();
-    const reportsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/reports`;
-    const datasetsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets`;
-
-    console.log(`\\n[PBI API Call] GET ${reportsUrl}`);
-    console.log(`\\n[PBI API Call] GET ${datasetsUrl}`);
-    const [reportsResp, datasetsResp] = await Promise.all([
-      fetch(reportsUrl, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(datasetsUrl, { headers: { Authorization: `Bearer ${token}` } }),
-    ]);
-
-    const reportsData = await reportsResp.json() as any;
-    const datasetsData = await datasetsResp.json() as any;
-
-    recordLog('Fetch Stage Reports', 'GET', reportsUrl, reportsResp.status, Date.now() - startTime, { workspaceId }, reportsData);
-    recordLog('Fetch Stage Datasets', 'GET', datasetsUrl, datasetsResp.status, Date.now() - startTime, { workspaceId }, datasetsData);
-
-    if (!reportsResp.ok) throw new Error(reportsData.error?.message || 'Failed to list reports');
-    if (!datasetsResp.ok) throw new Error(datasetsData.error?.message || 'Failed to list datasets');
-
+    recordLog('Fetch Workspace Artifacts', 'GET', `/api/powerbi/stage-artifacts?workspaceId=${workspaceId}`, 200, Date.now() - startTime, null, { reports, datasets });
+    
     res.json({
       success: true,
       workspaceId,
-      reports: reportsData.value || [],
-      datasets: datasetsData.value || [],
+      reports,
+      datasets
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  }, 600);
 });
 
 app.post('/api/powerbi/deploy', async (req: Request, res: Response) => {
   const startTime = Date.now();
-  const { pipelineId, sourceStageOrder = 1, targetStageOrder = 2, reportIds = [], datasetIds = [], note } = req.body || {};
+  const { sourceWorkspaceId, targetWorkspaceId, datasets, reports } = req.body;
+  
+  const opId = `op-mock-${Date.now()}`;
+  
+  deploymentOperations[opId] = {
+    id: opId,
+    status: 'Executing',
+    executionStartTime: new Date().toISOString(),
+  };
 
-  try {
-    const token = await getAccessToken();
-    const targetPipelineId = pipelineId || config.pipelineIds[0];
+  // Simulate deployment completion after 3 seconds
+  setTimeout(() => {
+    deploymentOperations[opId].status = 'Succeeded';
+    deploymentOperations[opId].executionEndTime = new Date().toISOString();
     
-    if (!targetPipelineId) throw new Error("Pipeline ID missing");
-
-    const deployUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines/${targetPipelineId}/deploy`;
-    const deployBody: any = {
-      sourceStageOrder,
-      options: {
-        allowCreateArtifact: true,
-        allowOverwriteArtifact: true,
-      },
-    };
-
-    if (reportIds && reportIds.length > 0) {
-      deployBody.reports = reportIds.map((id: string) => ({ sourceId: id }));
-    }
-    if (datasetIds && datasetIds.length > 0) {
-      deployBody.datasets = datasetIds.map((id: string) => ({ sourceId: id }));
-    }
-    if (note) {
-      deployBody.note = note;
-    }
-
-    console.log(`\n[PBI API Call] POST ${deployUrl}\nPayload:`, JSON.stringify(deployBody, null, 2)); const deployResp = await fetch(deployUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(deployBody),
+    // Auto-update prod mocks with deployed items if they didn't exist
+    datasets?.forEach((ds: any) => {
+      const existing = mockProdDatasets.find(d => d.name === ds.name);
+      if (!existing) {
+        mockProdDatasets.push({ ...ds, id: `ds-prod-new-${Date.now()}` });
+      }
+    });
+    reports?.forEach((rp: any) => {
+      const existing = mockProdReports.find(r => r.name === rp.name);
+      if (!existing) {
+        mockProdReports.push({ ...rp, id: `r-prod-new-${Date.now()}` });
+      }
     });
 
-    const duration = Date.now() - startTime;
-    const opHeader = deployResp.headers.get('location') || deployResp.headers.get('operation-id') || deployResp.headers.get('x-ms-request-id');
-    let responseData: any = {};
-    try {
-      responseData = await deployResp.json();
-    } catch {
-      responseData = { location: opHeader };
-    }
+  }, 3000);
 
-    recordLog('Deploy to Prod', 'POST', deployUrl, deployResp.status, duration, deployBody, responseData);
+  recordLog('Trigger Deployment', 'POST', '/api/powerbi/deploy', 202, Date.now() - startTime, req.body, { operationId: opId });
 
-    if (!deployResp.ok && deployResp.status !== 202) {
-      throw new Error(responseData.error?.message || `Deployment failed to trigger (${deployResp.status})`);
-    }
-
-    const opId = responseData.id || opHeader?.split('/').pop() || `op-${Date.now()}`;
-
-    res.status(202).json({
-      success: true,
-      operationId: opId,
-      message: 'Deployment triggered successfully. Polling operation status...',
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.status(202).json({
+    success: true,
+    operationId: opId,
+    message: 'Mock deployment triggered.',
+  });
 });
 
 app.get('/api/powerbi/operations/:operationId', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { operationId } = req.params;
-  const pipelineId = (req.query.pipelineId as string) || config.pipelineIds[0];
+  
+  const op = deploymentOperations[operationId] || {
+    id: operationId,
+    status: 'Failed',
+    error: { message: 'Mock operation not found' }
+  };
 
-  try {
-    const token = await getAccessToken();
-    const opUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines/${pipelineId}/operations/${operationId}`;
-    console.log(`\n[PBI API Call] GET ${opUrl}`); const opResp = await fetch(opUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const opData = await opResp.json() as any;
+  recordLog('Check Deploy Operation', 'GET', `/api/powerbi/operations/${operationId}`, 200, Date.now() - startTime, null, op);
 
-    recordLog('Check Deploy Operation', 'GET', opUrl, opResp.status, Date.now() - startTime, { operationId }, opData);
-
-    if (!opResp.ok) {
-      throw new Error(opData.error?.message || `Failed to check operation status (${opResp.status})`);
-    }
-
-    res.json({
-      success: true,
-      operation: {
-        id: opData.id || operationId,
-        status: opData.status,
-        executionStartTime: opData.executionStartTime,
-        executionEndTime: opData.executionEndTime,
-        error: opData.error,
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.json({
+    success: true,
+    operation: op
+  });
 });
 
 app.get('/api/powerbi/datasets/:datasetId/parameters', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { datasetId } = req.params;
-  const workspaceId = (req.query.workspaceId as string) || config.prodWorkspaceId;
+  
+  setTimeout(() => {
+    const parameters = mockParamsData[datasetId] || [
+      { name: "MockServerUrl", type: "Text", currentValue: "mock.database.windows.net", isRequired: true }
+    ];
 
-  try {
-    if (!workspaceId) throw new Error("Workspace ID missing");
-    const token = await getAccessToken();
-    const paramsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/parameters`;
-    console.log(`\n[PBI API Call] GET ${paramsUrl}`); const paramsResp = await fetch(paramsUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const paramsData = await paramsResp.json() as any;
-
-    recordLog('Fetch Dataset Parameters', 'GET', paramsUrl, paramsResp.status, Date.now() - startTime, { workspaceId, datasetId }, paramsData);
-
-    if (!paramsResp.ok) {
-      throw new Error(paramsData.error?.message || `Failed to retrieve parameters (${paramsResp.status})`);
-    }
+    recordLog('Fetch Dataset Parameters', 'GET', `/api/powerbi/datasets/${datasetId}/parameters`, 200, Date.now() - startTime, null, { parameters });
 
     res.json({
       success: true,
-      workspaceId,
       datasetId,
-      parameters: paramsData.value || [],
+      parameters
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  }, 400);
 });
 
 app.post('/api/powerbi/datasets/:datasetId/update-parameters', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { datasetId } = req.params;
-  const { workspaceId = config.prodWorkspaceId, updateDetails = [] } = req.body || {};
-
-  try {
-    if (!workspaceId) throw new Error("Workspace ID missing");
-    const token = await getAccessToken();
-    const updateUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/Default.UpdateParameters`;
-    console.log(`\n[PBI API Call] POST ${updateUrl}\nPayload:`, JSON.stringify({ updateDetails }, null, 2)); const updateResp = await fetch(updateUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ updateDetails }),
-    });
-
-    const duration = Date.now() - startTime;
-    let respData: any = {};
-    try {
-      respData = await updateResp.json();
-    } catch {
-      respData = { status: updateResp.statusText };
+  const { updateDetails } = req.body;
+  
+  setTimeout(() => {
+    if (mockParamsData[datasetId]) {
+      updateDetails.forEach((update: any) => {
+        const p = mockParamsData[datasetId].find((p: any) => p.name === update.name);
+        if (p) p.currentValue = update.newValue;
+      });
     }
 
-    recordLog('Update Parameters', 'POST', updateUrl, updateResp.status, duration, { updateDetails }, respData);
-
-    if (!updateResp.ok) {
-      throw new Error(respData.error?.message || `Failed to update parameters (${updateResp.status})`);
-    }
+    recordLog('Update Parameters', 'POST', `/api/powerbi/datasets/${datasetId}/update-parameters`, 200, Date.now() - startTime, req.body, { success: true });
 
     res.json({
       success: true,
-      message: 'Dataset parameters updated successfully in Power BI.',
+      message: 'Mock parameters updated successfully.'
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  }, 500);
 });
 
 app.post('/api/powerbi/datasets/:datasetId/refresh', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { datasetId } = req.params;
-  const { workspaceId = config.prodWorkspaceId } = req.body || {};
-  // Forced notification behavior in backend per requirements
-  const notifyOption = 'MailOnFailure';
+  
+  const refreshId = `ref-mock-${Date.now()}`;
+  
+  refreshes[datasetId] = {
+    id: refreshId,
+    status: 'Executing',
+    startTime: new Date().toISOString()
+  };
 
-  try {
-    if (!workspaceId) throw new Error("Workspace ID missing");
-    const token = await getAccessToken();
-    const refreshUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/refreshes`;
-    console.log(`\n[PBI API Call] POST ${refreshUrl}`); const refreshResp = await fetch(refreshUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ notifyOption }),
-    });
-
-    const duration = Date.now() - startTime;
-    let respData: any = {};
-    try {
-      respData = await refreshResp.json();
-    } catch {
-      respData = { status: refreshResp.statusText };
+  setTimeout(() => {
+    if (refreshes[datasetId]) {
+      refreshes[datasetId].status = 'Completed';
+      refreshes[datasetId].endTime = new Date().toISOString();
     }
+  }, 2500);
 
-    recordLog('Trigger Semantic Refresh', 'POST', refreshUrl, refreshResp.status, duration, { notifyOption }, respData);
+  recordLog('Trigger Semantic Refresh', 'POST', `/api/powerbi/datasets/${datasetId}/refresh`, 202, Date.now() - startTime, null, { refreshId });
 
-    if (!refreshResp.ok && refreshResp.status !== 202) {
-      throw new Error(respData.error?.message || `Failed to trigger refresh (${refreshResp.status})`);
-    }
-
-    res.status(202).json({
-      success: true,
-      message: 'Dataset refresh request accepted (202). Polling refresh status...',
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.status(202).json({
+    success: true,
+    message: 'Mock refresh triggered.'
+  });
 });
 
 app.get('/api/powerbi/datasets/:datasetId/refresh-status', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const { datasetId } = req.params;
-  const workspaceId = (req.query.workspaceId as string) || config.prodWorkspaceId;
+  
+  const refresh = refreshes[datasetId] || { status: 'Unknown' };
 
-  try {
-    if (!workspaceId) throw new Error("Workspace ID missing");
-    const token = await getAccessToken();
-    const statusUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/refreshes?$top=1`;
-    console.log(`\n[PBI API Call] GET ${statusUrl}`); const statusResp = await fetch(statusUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const statusData = await statusResp.json() as any;
+  recordLog('Check Refresh Status', 'GET', `/api/powerbi/datasets/${datasetId}/refresh-status`, 200, Date.now() - startTime, null, { refresh });
 
-    recordLog('Check Refresh Status', 'GET', statusUrl, statusResp.status, Date.now() - startTime, { workspaceId, datasetId }, statusData);
+  res.json({
+    success: true,
+    refresh
+  });
+});
 
-    if (!statusResp.ok) {
-      throw new Error(statusData.error?.message || `Failed to fetch refresh status (${statusResp.status})`);
-    }
 
-    const latest = (statusData.value && statusData.value[0]) || { status: 'Unknown' };
+app.post('/api/powerbi/workspace/:workspaceId/datasets/takeover', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const { workspaceId } = req.params;
+  const { datasetIds = [] } = req.body || {};
+
+  setTimeout(() => {
+    const results = datasetIds.map((datasetId: string) => ({
+      datasetId,
+      success: true
+    }));
+
+    recordLog('Take Over Datasets', 'POST', `/api/powerbi/workspace/${workspaceId}/datasets/takeover`, 200, Date.now() - startTime, req.body, { results });
 
     res.json({
       success: true,
-      refresh: latest,
+      message: 'Mock datasets taken over successfully',
+      results
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  }, 800);
 });
+
+// ---------------------------------------------------------
+// FRONTEND SERVING
+// ---------------------------------------------------------
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -489,7 +356,7 @@ async function startServer() {
 
     app.get('*', async (req: Request, res: Response, next: any) => {
       try {
-        console.log(`[Local Server] Intercepting request for ${req.originalUrl}`);
+        console.log(`[Mock Server] Intercepting request for ${req.originalUrl}`);
         const url = req.originalUrl;
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
@@ -508,7 +375,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Power BI Pipeline Deployer Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Power BI Pipeline Deployer [MOCK SERVER] running on http://0.0.0.0:${PORT}`);
   });
 }
 

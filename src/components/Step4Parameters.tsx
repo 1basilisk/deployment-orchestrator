@@ -25,7 +25,7 @@ export const Step4Parameters: React.FC<Step4ParametersProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-amber-500 text-neutral-950 text-xs font-bold flex items-center justify-center">
-              5
+              6
             </span>
             <h3 className="text-base font-semibold text-neutral-100">
               Check &amp; Update Prod Parameters
