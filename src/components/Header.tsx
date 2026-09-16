@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   isDeploying,
 }) => {
   return (
-    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+    <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between h-auto md:h-16 py-4 md:py-0 gap-4">
           
@@ -34,13 +34,13 @@ export const Header: React.FC<HeaderProps> = ({
               <Power className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <h1 className="text-sm font-bold text-neutral-100 flex items-center gap-2">
                 Power BI Deployment Orchestrator
-                <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold bg-neutral-800 text-neutral-400 border border-neutral-700">
                   v1.0
                 </span>
               </h1>
-              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <div className="text-[11px] text-neutral-400 mt-0.5 flex items-center gap-1.5">
                 <Server className="w-3 h-3" /> Target Pipeline: 
                 {config?.pipelineIds && config.pipelineIds.length > 1 ? (
                   <select
@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onResetWorkflow();
                     }}
                     disabled={isDeploying}
-                    className="bg-slate-800 border border-slate-700 text-slate-200 rounded px-1 py-0.5 text-[11px] outline-none focus:border-amber-500 font-mono"
+                    className="bg-neutral-800 border border-neutral-700 text-neutral-200 rounded px-1 py-0.5 text-[11px] outline-none focus:border-amber-500 font-mono"
                   >
                     {config.pipelineIds.map((id) => (
                       <option key={id} value={id}>
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
                     ))}
                   </select>
                 ) : (
-                  <span className="font-mono text-slate-300">{activePipelineId || 'Not Configured'}</span>
+                  <span className="font-mono text-neutral-300">{activePipelineId || 'Not Configured'}</span>
                 )}
               </div>
             </div>
@@ -69,13 +69,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             
             {/* Primary Navigation Tabs */}
-            <nav className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <nav className="flex items-center gap-1 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
               <button
                 onClick={() => setActiveTab('pipeline')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   activeTab === 'pipeline'
-                    ? 'bg-slate-800 text-amber-400 shadow-xs border border-slate-700'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-neutral-800 text-amber-400 shadow-xs border border-neutral-700'
+                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" />
@@ -85,8 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab('logs')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   activeTab === 'logs'
-                    ? 'bg-slate-800 text-amber-400 shadow-xs border border-slate-700'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-neutral-800 text-amber-400 shadow-xs border border-neutral-700'
+                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -99,13 +99,13 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </nav>
 
-            <div className="h-6 w-px bg-slate-800 hidden sm:block"></div>
+            <div className="h-6 w-px bg-neutral-800 hidden sm:block"></div>
 
             {/* Reset Button */}
             <button
               onClick={onResetWorkflow}
               disabled={isDeploying}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCcw className="w-3.5 h-3.5" />
               Reset Flow

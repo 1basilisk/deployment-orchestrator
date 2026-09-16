@@ -36,19 +36,19 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
   })();
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-neutral-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-bold flex items-center justify-center">
+            <span className="w-6 h-6 rounded-full bg-amber-500 text-neutral-950 text-xs font-bold flex items-center justify-center">
               6
             </span>
-            <h3 className="text-base font-semibold text-slate-100">
+            <h3 className="text-base font-semibold text-neutral-100">
               Check Dataset Refresh Status &amp; Final Pipeline Telemetry
             </h3>
           </div>
-          <p className="text-xs text-slate-400 mt-1 pl-8">
-            Polls Power BI API (<code className="bg-slate-800 border border-slate-700 px-1 py-0.5 rounded text-amber-500 font-mono text-[11px]">GET /v1.0/myorg/groups/{'{prodWorkspaceId}'}/datasets/{'{id}'}/refreshes?$top=1</code>) until refresh state transitions to <span className="font-semibold text-emerald-500">Completed</span>.
+          <p className="text-xs text-neutral-400 mt-1 pl-8">
+            Polls Power BI API (<code className="bg-neutral-800 border border-neutral-700 px-1 py-0.5 rounded text-amber-500 font-mono text-[11px]">GET /v1.0/myorg/groups/{'{prodWorkspaceId}'}/datasets/{'{id}'}/refreshes?$top=1</code>) until refresh state transitions to <span className="font-semibold text-emerald-500">Completed</span>.
           </p>
         </div>
 
@@ -56,11 +56,11 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
           id="btn-execute-step-6"
           onClick={onCheckStatus}
           disabled={isRunning}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-100 px-4 py-2 rounded-lg text-xs font-semibold shadow-xl border border-slate-700 disabled:opacity-50 transition-all shrink-0"
+          className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 px-4 py-2 rounded-lg text-xs font-semibold shadow-xl border border-neutral-700 disabled:opacity-50 transition-all shrink-0"
         >
           {isRunning ? (
             <>
-              <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full animate-spin" />
               <span>Checking Status (Poll #{pollCount})...</span>
             </>
           ) : (
@@ -95,10 +95,10 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
             <div className="flex items-center gap-2">
               <Activity className={`w-5 h-5 ${isCompleted ? 'text-emerald-500' : isFailed ? 'text-rose-500' : 'text-amber-500'}`} />
               <div>
-                <h4 className="text-sm font-bold text-slate-200">
+                <h4 className="text-sm font-bold text-neutral-200">
                   Semantic Model Execution Engine
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-neutral-400">
                   Target: {prodWorkspaceName || 'Finance Analytics [PRODUCTION]'}
                 </p>
               </div>
@@ -115,25 +115,25 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-neutral-950 p-3.5 rounded-lg border border-neutral-800">
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Refresh ID</span>
-              <p className="font-mono text-[11px] text-slate-300 break-all">{refresh?.id || 'Pending API return'}</p>
+              <span className="text-[10px] uppercase font-bold text-neutral-500">Refresh ID</span>
+              <p className="font-mono text-[11px] text-neutral-300 break-all">{refresh?.id || 'Pending API return'}</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Refresh Type</span>
-              <p className="text-slate-300 font-semibold">{refresh?.refreshType || 'ViaApi'}</p>
+              <span className="text-[10px] uppercase font-bold text-neutral-500">Refresh Type</span>
+              <p className="text-neutral-300 font-semibold">{refresh?.refreshType || 'ViaApi'}</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Duration</span>
-              <p className="text-slate-300 font-semibold flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-[10px] uppercase font-bold text-neutral-500">Duration</span>
+              <p className="text-neutral-300 font-semibold flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-neutral-500" />
                 {durationText || 'Calculating...'}
               </p>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-500">Finished At</span>
-              <p className="text-slate-300 font-semibold">
+              <span className="text-[10px] uppercase font-bold text-neutral-500">Finished At</span>
+              <p className="text-neutral-300 font-semibold">
                 {refresh?.endTime ? new Date(refresh.endTime).toLocaleTimeString() : (isExecuting ? 'In progress...' : 'Pending')}
               </p>
             </div>
@@ -173,7 +173,7 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
                   Pipeline Run Completed Successfully
                 </span>
               </div>
-              <h4 className="text-xl font-bold tracking-tight mb-2 text-slate-100">
+              <h4 className="text-xl font-bold tracking-tight mb-2 text-neutral-100">
                 Dashboards &amp; Datasets Deployed to Production!
               </h4>
               <p className="text-xs text-emerald-100 max-w-2xl leading-relaxed">
@@ -185,7 +185,7 @@ export const Step6CheckStatus: React.FC<Step6CheckStatusProps> = ({
                 <button
                   id="btn-view-logs-summary"
                   onClick={onViewLogs}
-                  className="bg-slate-950 text-slate-100 hover:bg-slate-900 border border-slate-700 text-xs font-bold px-4 py-2 rounded-lg shadow-xl transition-colors flex items-center gap-1.5"
+                  className="bg-neutral-950 text-neutral-100 hover:bg-neutral-900 border border-neutral-700 text-xs font-bold px-4 py-2 rounded-lg shadow-xl transition-colors flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>Inspect All API Transaction Logs</span>

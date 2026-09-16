@@ -55,17 +55,17 @@ export const LogsView: React.FC<LogsViewProps> = ({
   return (
     <div className="space-y-4 max-w-6xl mx-auto">
       {/* Top Header & Summary */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-neutral-100 flex items-center gap-2">
               <FileText className="w-5 h-5 text-amber-500" />
               <span>Power BI API Transaction Audit Trail</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono border border-slate-700">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-mono border border-neutral-700">
                 {logs.length} Recorded Transactions
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-neutral-400 mt-0.5">
               Full diagnostic stream of HTTP requests, authentication handshakes, payloads, and timing.
             </p>
           </div>
@@ -75,7 +75,7 @@ export const LogsView: React.FC<LogsViewProps> = ({
               id="btn-refresh-logs"
               onClick={onRefresh}
               disabled={isLoading}
-              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs text-neutral-300 hover:text-neutral-100 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-1.5 rounded-lg transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
@@ -85,7 +85,7 @@ export const LogsView: React.FC<LogsViewProps> = ({
               id="btn-export-logs"
               onClick={handleExportJson}
               disabled={logs.length === 0}
-              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs text-neutral-300 hover:text-neutral-100 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export JSON</span>
@@ -104,26 +104,26 @@ export const LogsView: React.FC<LogsViewProps> = ({
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -tranneutral-y-1/2 text-neutral-500" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by URL, parameter, error message..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-950 text-slate-200"
+              className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 bg-neutral-950 text-neutral-200"
             />
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-1 bg-neutral-800 p-0.5 rounded-lg border border-neutral-700">
               {(['ALL', 'GET', 'POST'] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => setMethodFilter(m)}
                   className={`px-2.5 py-1 rounded font-medium ${
-                    methodFilter === m ? 'bg-slate-600 text-slate-100 font-bold' : 'text-slate-400'
+                    methodFilter === m ? 'bg-neutral-600 text-neutral-100 font-bold' : 'text-neutral-400'
                   }`}
                 >
                   {m}
@@ -131,13 +131,13 @@ export const LogsView: React.FC<LogsViewProps> = ({
               ))}
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-1 bg-neutral-800 p-0.5 rounded-lg border border-neutral-700">
               {(['ALL', 'SUCCESS', 'ERROR'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
                   className={`px-2.5 py-1 rounded font-medium ${
-                    statusFilter === s ? 'bg-slate-600 text-slate-100 font-bold' : 'text-slate-400'
+                    statusFilter === s ? 'bg-neutral-600 text-neutral-100 font-bold' : 'text-neutral-400'
                   }`}
                 >
                   {s}
@@ -150,7 +150,7 @@ export const LogsView: React.FC<LogsViewProps> = ({
 
       {/* Logs Table / Accordion */}
       {filteredLogs.length > 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl divide-y divide-slate-800">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl divide-y divide-neutral-800">
           {filteredLogs.map((log) => {
             const isExpanded = expandedId === log.id;
             const isSuccess = log.status >= 200 && log.status < 300;
@@ -161,14 +161,14 @@ export const LogsView: React.FC<LogsViewProps> = ({
                 {/* Collapsed Row */}
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                  className={`p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-800 text-xs ${
-                    isExpanded ? 'bg-slate-800/80' : ''
+                  className={`p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-neutral-800 text-xs ${
+                    isExpanded ? 'bg-neutral-800/80' : ''
                   }`}
                 >
                   <div className="flex items-center gap-3 overflow-hidden flex-1">
                     <button
                       type="button"
-                      className="text-slate-500 hover:text-slate-300 shrink-0"
+                      className="text-neutral-500 hover:text-neutral-300 shrink-0"
                       aria-label="Expand details"
                     >
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -199,17 +199,17 @@ export const LogsView: React.FC<LogsViewProps> = ({
                     </span>
 
                     {/* URL */}
-                    <span className="font-mono text-slate-300 truncate text-[11px]" title={log.url}>
+                    <span className="font-mono text-neutral-300 truncate text-[11px]" title={log.url}>
                       {log.url}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0 text-slate-500 text-[11px]">
+                  <div className="flex items-center gap-3 shrink-0 text-neutral-500 text-[11px]">
                     {/* Latency */}
                     <span className="font-mono">{log.durationMs}ms</span>
 
                     {/* Time */}
-                    <span className="hidden md:inline font-mono text-slate-400">
+                    <span className="hidden md:inline font-mono text-neutral-400">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </div>
@@ -217,15 +217,15 @@ export const LogsView: React.FC<LogsViewProps> = ({
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="p-4 bg-slate-950 text-slate-200 text-xs font-mono space-y-3 border-t border-slate-800">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                      <span className="text-[11px] text-slate-500">Transaction ID: {log.id}</span>
+                  <div className="p-4 bg-neutral-950 text-neutral-200 text-xs font-mono space-y-3 border-t border-neutral-800">
+                    <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
+                      <span className="text-[11px] text-neutral-500">Transaction ID: {log.id}</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCopyJson(log);
                         }}
-                        className="flex items-center gap-1 text-[11px] bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-2 py-1 rounded transition-colors"
+                        className="flex items-center gap-1 text-[11px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 px-2 py-1 rounded transition-colors"
                       >
                         {isCopied ? (
                           <>
@@ -244,14 +244,14 @@ export const LogsView: React.FC<LogsViewProps> = ({
                     {/* URL & Headers */}
                     <div>
                       <span className="text-[10px] uppercase font-bold text-amber-500">Full Request URL</span>
-                      <p className="text-slate-300 break-all select-all mt-0.5">{log.url}</p>
+                      <p className="text-neutral-300 break-all select-all mt-0.5">{log.url}</p>
                     </div>
 
                     {/* Request Payload */}
                     {log.requestPayload && (
                       <div>
                         <span className="text-[10px] uppercase font-bold text-amber-500">Request Body / Query</span>
-                        <pre className="mt-1 p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-[11px] overflow-x-auto text-amber-200">
+                        <pre className="mt-1 p-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-[11px] overflow-x-auto text-amber-200">
                           {JSON.stringify(log.requestPayload, null, 2)}
                         </pre>
                       </div>
@@ -261,7 +261,7 @@ export const LogsView: React.FC<LogsViewProps> = ({
                     {log.responsePayload && (
                       <div>
                         <span className="text-[10px] uppercase font-bold text-emerald-500">Response Body</span>
-                        <pre className="mt-1 p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-[11px] overflow-x-auto text-emerald-300 max-h-64">
+                        <pre className="mt-1 p-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-[11px] overflow-x-auto text-emerald-300 max-h-64">
                           {JSON.stringify(log.responsePayload, null, 2)}
                         </pre>
                       </div>
@@ -283,10 +283,10 @@ export const LogsView: React.FC<LogsViewProps> = ({
           })}
         </div>
       ) : (
-        <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-xl shadow-xl">
-          <FileText className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-xs font-semibold text-slate-300">No transactions match your query</p>
-          <p className="text-xs text-slate-500 mt-1">
+        <div className="text-center py-12 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl">
+          <FileText className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+          <p className="text-xs font-semibold text-neutral-300">No transactions match your query</p>
+          <p className="text-xs text-neutral-500 mt-1">
             Execute actions in the Deployment Pipeline tab to populate live API transaction records.
           </p>
         </div>

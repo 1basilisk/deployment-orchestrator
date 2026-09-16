@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { ApiTransaction, DeploymentConfig } from './src/types.js';
@@ -69,7 +70,7 @@ async function getAccessToken(): Promise<string> {
   params.append('grant_type', 'client_credentials');
 
   try {
-    const res = await fetch(tokenEndpoint, {
+    console.log(`\n[PBI API Call] POST ${tokenEndpoint}`); const res = await fetch(tokenEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
@@ -114,7 +115,7 @@ app.post('/api/powerbi/test-connection', async (_req: Request, res: Response) =>
   try {
     const token = await getAccessToken();
     const testUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines`;
-    const resp = await fetch(testUrl, {
+    console.log(`\n[PBI API Call] GET ${testUrl}`); const resp = await fetch(testUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -154,7 +155,7 @@ app.get('/api/powerbi/pipeline-info', async (req: Request, res: Response) => {
     }
 
     const stagesUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines/${pipelineId}/stages`;
-    const stagesResp = await fetch(stagesUrl, {
+    console.log(`\n[PBI API Call] GET ${stagesUrl}`); const stagesResp = await fetch(stagesUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const stagesData = await stagesResp.json() as any;
@@ -196,6 +197,8 @@ app.get('/api/powerbi/stage-artifacts', async (req: Request, res: Response) => {
     const reportsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/reports`;
     const datasetsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets`;
 
+    console.log(`\\n[PBI API Call] GET ${reportsUrl}`);
+    console.log(`\\n[PBI API Call] GET ${datasetsUrl}`);
     const [reportsResp, datasetsResp] = await Promise.all([
       fetch(reportsUrl, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(datasetsUrl, { headers: { Authorization: `Bearer ${token}` } }),
@@ -240,17 +243,17 @@ app.post('/api/powerbi/deploy', async (req: Request, res: Response) => {
       },
     };
 
-    if (reportIds.length > 0) {
+    if (reportIds && reportIds.length > 0) {
       deployBody.reports = reportIds.map((id: string) => ({ sourceId: id }));
     }
-    if (datasetIds.length > 0) {
+    if (datasetIds && datasetIds.length > 0) {
       deployBody.datasets = datasetIds.map((id: string) => ({ sourceId: id }));
     }
     if (note) {
       deployBody.note = note;
     }
 
-    const deployResp = await fetch(deployUrl, {
+    console.log(`\n[PBI API Call] POST ${deployUrl}\nPayload:`, JSON.stringify(deployBody, null, 2)); const deployResp = await fetch(deployUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -294,7 +297,7 @@ app.get('/api/powerbi/operations/:operationId', async (req: Request, res: Respon
   try {
     const token = await getAccessToken();
     const opUrl = `${config.apiBaseUrl}/v1.0/myorg/pipelines/${pipelineId}/operations/${operationId}`;
-    const opResp = await fetch(opUrl, {
+    console.log(`\n[PBI API Call] GET ${opUrl}`); const opResp = await fetch(opUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const opData = await opResp.json() as any;
@@ -329,7 +332,7 @@ app.get('/api/powerbi/datasets/:datasetId/parameters', async (req: Request, res:
     if (!workspaceId) throw new Error("Workspace ID missing");
     const token = await getAccessToken();
     const paramsUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/parameters`;
-    const paramsResp = await fetch(paramsUrl, {
+    console.log(`\n[PBI API Call] GET ${paramsUrl}`); const paramsResp = await fetch(paramsUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const paramsData = await paramsResp.json() as any;
@@ -360,7 +363,7 @@ app.post('/api/powerbi/datasets/:datasetId/update-parameters', async (req: Reque
     if (!workspaceId) throw new Error("Workspace ID missing");
     const token = await getAccessToken();
     const updateUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/Default.UpdateParameters`;
-    const updateResp = await fetch(updateUrl, {
+    console.log(`\n[PBI API Call] POST ${updateUrl}\nPayload:`, JSON.stringify({ updateDetails }, null, 2)); const updateResp = await fetch(updateUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -403,7 +406,7 @@ app.post('/api/powerbi/datasets/:datasetId/refresh', async (req: Request, res: R
     if (!workspaceId) throw new Error("Workspace ID missing");
     const token = await getAccessToken();
     const refreshUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/refreshes`;
-    const refreshResp = await fetch(refreshUrl, {
+    console.log(`\n[PBI API Call] POST ${refreshUrl}`); const refreshResp = await fetch(refreshUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -444,7 +447,7 @@ app.get('/api/powerbi/datasets/:datasetId/refresh-status', async (req: Request, 
     if (!workspaceId) throw new Error("Workspace ID missing");
     const token = await getAccessToken();
     const statusUrl = `${config.apiBaseUrl}/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/refreshes?$top=1`;
-    const statusResp = await fetch(statusUrl, {
+    console.log(`\n[PBI API Call] GET ${statusUrl}`); const statusResp = await fetch(statusUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const statusData = await statusResp.json() as any;
@@ -473,6 +476,19 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    app.get('*', async (req: Request, res: Response, next: any) => {
+      try {
+        console.log(`[Local Server] Intercepting request for ${req.originalUrl}`);
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));

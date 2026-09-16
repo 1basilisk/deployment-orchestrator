@@ -96,7 +96,7 @@ export interface DeploymentConfig {
   prodWorkspaceId?: string;
 }
 
-export type StepId = 1 | 2 | 3 | 4 | 5 | 6;
+export type StepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type StepStatus = 'idle' | 'running' | 'success' | 'failed' | 'waiting_user';
 
 export interface StepState {

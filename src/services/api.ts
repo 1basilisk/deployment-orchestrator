@@ -30,7 +30,7 @@ export const apiClient = {
     const res = await fetch(url);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to retrieve stage artifacts');
-    return data;
+    return { ...data, reports: data.reports || [], datasets: data.datasets || [] };
   },
 
   async triggerDeploy(payload: {

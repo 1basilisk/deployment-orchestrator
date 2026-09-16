@@ -11,6 +11,8 @@ interface Step2ListReportsProps {
   datasets: Dataset[];
   selectedReportIds: string[];
   selectedDatasetIds: string[];
+  autoSelectDataset?: boolean;
+  onToggleAutoSelectDataset?: () => void;
   onToggleReport: (id: string) => void;
   onToggleDataset: (id: string) => void;
   onSelectAll: () => void;
@@ -27,6 +29,8 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
   datasets,
   selectedReportIds,
   selectedDatasetIds,
+  autoSelectDataset,
+  onToggleAutoSelectDataset,
   onToggleReport,
   onToggleDataset,
   onSelectAll,
@@ -36,19 +40,19 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
   const totalSelected = selectedReportIds.length + selectedDatasetIds.length;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-neutral-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-bold flex items-center justify-center">
+            <span className="w-6 h-6 rounded-full bg-amber-500 text-neutral-950 text-xs font-bold flex items-center justify-center">
               2
             </span>
-            <h3 className="text-base font-semibold text-slate-100">
+            <h3 className="text-base font-semibold text-neutral-100">
               List Existing Reports &amp; Semantic Models in Stage
             </h3>
           </div>
-          <p className="text-xs text-slate-400 mt-1 pl-8">
-            Enumerates reports and datasets from <span className="font-semibold text-slate-200">{stageWorkspaceName || 'Stage Workspace'}</span> via <code className="bg-slate-800 border border-slate-700 px-1 py-0.5 rounded text-amber-500 font-mono text-[11px]">GET /v1.0/myorg/groups/{'{stageWorkspaceId}'}/reports</code>.
+          <p className="text-xs text-neutral-400 mt-1 pl-8">
+            Enumerates reports and datasets from <span className="font-semibold text-neutral-200">{stageWorkspaceName || 'Stage Workspace'}</span> via <code className="bg-neutral-800 border border-neutral-700 px-1 py-0.5 rounded text-amber-500 font-mono text-[11px]">GET /v1.0/myorg/groups/{'{stageWorkspaceId}'}/reports</code>.
           </p>
         </div>
 
@@ -56,7 +60,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
           id="btn-execute-step-2"
           onClick={onExecute}
           disabled={isRunning}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-100 px-4 py-2 rounded-lg text-xs font-semibold shadow-xl border border-slate-700 disabled:opacity-50 transition-all shrink-0"
+          className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 px-4 py-2 rounded-lg text-xs font-semibold shadow-xl border border-neutral-700 disabled:opacity-50 transition-all shrink-0"
         >
           {isRunning ? (
             <>
@@ -85,9 +89,9 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
       {reports.length > 0 || datasets.length > 0 ? (
         <div className="mt-6 space-y-6">
           {/* Controls bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-neutral-950 p-3 rounded-lg border border-neutral-800 text-xs">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-300">Artifact Selection:</span>
+              <span className="font-semibold text-neutral-300">Artifact Selection:</span>
               <span className="bg-amber-900/40 text-amber-500 font-bold px-2 py-0.5 rounded-full text-[11px] border border-amber-500/20">
                 {selectedReportIds.length} of {reports.length} Reports
               </span>
@@ -99,15 +103,15 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
               <button
                 id="btn-select-all"
                 onClick={onSelectAll}
-                className="text-slate-400 hover:text-slate-100 font-medium px-2 py-1 rounded hover:bg-slate-800 transition-colors text-xs"
+                className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs"
               >
                 Select All
               </button>
-              <span className="text-slate-700">|</span>
+              <span className="text-neutral-700">|</span>
               <button
                 id="btn-deselect-all"
                 onClick={onDeselectAll}
-                className="text-slate-400 hover:text-slate-100 font-medium px-2 py-1 rounded hover:bg-slate-800 transition-colors text-xs"
+                className="text-neutral-400 hover:text-neutral-100 font-medium px-2 py-1 rounded hover:bg-neutral-800 transition-colors text-xs"
               >
                 Deselect All
               </button>
@@ -116,11 +120,29 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
 
           {/* Reports Table */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-              <FileBarChart2 className="w-3.5 h-3.5 text-amber-500" />
-              <span>Power BI Reports ({reports.length})</span>
-            </h4>
-            <div className="border border-slate-800 rounded-lg overflow-hidden divide-y divide-slate-800 shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
+                <FileBarChart2 className="w-3.5 h-3.5 text-amber-500" />
+                <span>Power BI Reports ({reports.length})</span>
+              </h4>
+              {onToggleAutoSelectDataset && (
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 transition-colors uppercase tracking-wider">
+                    Auto-select dataset
+                  </span>
+                  <div className={`relative w-8 h-4 rounded-full transition-colors ${autoSelectDataset ? 'bg-amber-500' : 'bg-neutral-700'}`}>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={autoSelectDataset}
+                      onChange={onToggleAutoSelectDataset}
+                    />
+                    <div className={`absolute left-0.5 top-0.5 w-3 h-3 bg-neutral-950 rounded-full transition-transform ${autoSelectDataset ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </label>
+              )}
+            </div>
+            <div className="border border-neutral-800 rounded-lg overflow-hidden divide-y divide-neutral-800 shadow-xl">
               {reports.map((report) => {
                 const isSelected = selectedReportIds.includes(report.id);
                 return (
@@ -128,7 +150,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                     key={report.id}
                     onClick={() => onToggleReport(report.id)}
                     className={`p-3.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-amber-900/10 hover:bg-amber-900/20' : 'bg-slate-900 hover:bg-slate-800'
+                      isSelected ? 'bg-amber-900/10 hover:bg-amber-900/20' : 'bg-neutral-900 hover:bg-neutral-800'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -140,25 +162,25 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                         {isSelected ? (
                           <CheckSquare className="w-4 h-4 text-amber-500 fill-amber-900/40" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-600" />
+                          <Square className="w-4 h-4 text-neutral-600" />
                         )}
                       </button>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-slate-200">{report.name}</p>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-950 text-slate-400 font-mono border border-slate-700">
+                          <p className="text-xs font-semibold text-neutral-200">{report.name}</p>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-950 text-neutral-400 font-mono border border-neutral-700">
                             {report.reportType || 'PowerBIReport'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        <p className="text-[11px] text-neutral-500 font-mono mt-0.5">
                           Report ID: {report.id} • Bound Dataset: {report.datasetId || 'None'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-neutral-500">
                       {report.modifiedDateTime && (
-                        <span className="hidden md:flex items-center gap-1 text-[11px] text-slate-500">
+                        <span className="hidden md:flex items-center gap-1 text-[11px] text-neutral-500">
                           <Calendar className="w-3 h-3" />
                           {new Date(report.modifiedDateTime).toLocaleDateString()}
                         </span>
@@ -169,7 +191,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors"
+                          className="p-1 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700 rounded transition-colors"
                           title="Open in Power BI Service"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -184,11 +206,11 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
 
           {/* Datasets Table */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2 flex items-center gap-1.5">
               <Database className="w-3.5 h-3.5 text-blue-500" />
               <span>Semantic Models / Datasets ({datasets.length})</span>
             </h4>
-            <div className="border border-slate-800 rounded-lg overflow-hidden divide-y divide-slate-800 shadow-xl">
+            <div className="border border-neutral-800 rounded-lg overflow-hidden divide-y divide-neutral-800 shadow-xl">
               {datasets.map((dataset) => {
                 const isSelected = selectedDatasetIds.includes(dataset.id);
                 return (
@@ -196,7 +218,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                     key={dataset.id}
                     onClick={() => onToggleDataset(dataset.id)}
                     className={`p-3.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-blue-900/10 hover:bg-blue-900/20' : 'bg-slate-900 hover:bg-slate-800'
+                      isSelected ? 'bg-blue-900/10 hover:bg-blue-900/20' : 'bg-neutral-900 hover:bg-neutral-800'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -208,12 +230,12 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
                         {isSelected ? (
                           <CheckSquare className="w-4 h-4 text-blue-500 fill-blue-900/40" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-600" />
+                          <Square className="w-4 h-4 text-neutral-600" />
                         )}
                       </button>
                       <div>
-                        <p className="text-xs font-semibold text-slate-200">{dataset.name}</p>
-                        <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        <p className="text-xs font-semibold text-neutral-200">{dataset.name}</p>
+                        <p className="text-[11px] text-neutral-500 font-mono mt-0.5">
                           Dataset ID: {dataset.id}
                         </p>
                       </div>
@@ -231,8 +253,8 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
           </div>
 
           {/* Continue button */}
-          <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-slate-400">
+          <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-neutral-400">
               {totalSelected > 0 ? (
                 <span className="text-emerald-500 font-medium">
                   ✓ Ready: {totalSelected} artifact{totalSelected > 1 ? 's' : ''} staged for deployment to Production.
@@ -248,7 +270,7 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
               id="btn-step-2-continue"
               onClick={onContinue}
               disabled={totalSelected === 0}
-              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg shadow-xl transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-bold px-4 py-2 rounded-lg shadow-xl transition-colors disabled:opacity-40"
             >
               <span>Proceed to Step 3 (Deploy to Production)</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -256,10 +278,10 @@ export const Step2ListReports: React.FC<Step2ListReportsProps> = ({
           </div>
         </div>
       ) : (
-        <div className="mt-8 text-center py-10 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/50">
-          <FileBarChart2 className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-xs font-medium text-slate-300">Stage artifacts not yet retrieved</p>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+        <div className="mt-8 text-center py-10 border-2 border-dashed border-neutral-800 rounded-xl bg-neutral-900/50">
+          <FileBarChart2 className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+          <p className="text-xs font-medium text-neutral-300">Stage artifacts not yet retrieved</p>
+          <p className="text-xs text-neutral-500 mt-1 max-w-md mx-auto">
             Click &quot;List Stage Reports&quot; above to query the reports and semantic models available for promotion.
           </p>
         </div>

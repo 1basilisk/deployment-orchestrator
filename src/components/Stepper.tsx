@@ -21,17 +21,17 @@ export const Stepper: React.FC<StepperProps> = ({
   const progressPercent = Math.round((completedCount / steps.length) * 100);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl mb-6">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-xl mb-6">
       {/* Top bar with progress and auto-advance toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-neutral-800">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
             <span>Pipeline Execution Sequence</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-950 text-slate-400 font-mono border border-slate-700">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-950 text-neutral-400 font-mono border border-neutral-700">
               {completedCount} / {steps.length} Steps Completed ({progressPercent}%)
             </span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-neutral-400 mt-0.5">
             Strict sequential execution: each API call waits for validated success before unlocking the next phase.
           </p>
         </div>
@@ -39,14 +39,14 @@ export const Stepper: React.FC<StepperProps> = ({
         <div className="flex items-center gap-3">
           <label
             htmlFor="toggle-auto-advance"
-            className="flex items-center gap-2 text-xs font-medium text-slate-300 cursor-pointer select-none bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 text-xs font-medium text-neutral-300 cursor-pointer select-none bg-neutral-950 px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 transition-colors"
           >
             <input
               id="toggle-auto-advance"
               type="checkbox"
               checked={isAutoAdvancing}
               onChange={onToggleAutoAdvance}
-              className="w-3.5 h-3.5 text-amber-500 rounded border-slate-700 bg-slate-900 focus:ring-amber-500/50"
+              className="w-3.5 h-3.5 text-amber-500 rounded border-neutral-700 bg-neutral-900 focus:ring-amber-500/50"
             />
             <span>Auto-Advance Sequential Run</span>
           </label>
@@ -54,7 +54,7 @@ export const Stepper: React.FC<StepperProps> = ({
       </div>
 
       {/* Progress Bar Line */}
-      <div className="w-full bg-slate-800 rounded-full h-1.5 mb-6 overflow-hidden">
+      <div className="w-full bg-neutral-800 rounded-full h-1.5 mb-6 overflow-hidden">
         <div
           className="bg-amber-500 h-1.5 rounded-full transition-all duration-500 ease-out"
           style={{ width: `${progressPercent}%` }}
@@ -70,7 +70,7 @@ export const Stepper: React.FC<StepperProps> = ({
           const isFailed = step.status === 'failed';
           const isWaitingUser = step.status === 'waiting_user';
 
-          let statusBg = 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-800';
+          let statusBg = 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-800';
           let icon = <span className="text-xs font-semibold">{step.id}</span>;
 
           if (isRunning) {
@@ -86,7 +86,7 @@ export const Stepper: React.FC<StepperProps> = ({
             statusBg = 'bg-indigo-900/20 border-indigo-500/50 text-indigo-100 ring-2 ring-indigo-500/20';
             icon = <Edit3 className="w-4 h-4 text-indigo-400" />;
           } else if (isCurrent) {
-            statusBg = 'bg-slate-800 border-slate-500 text-slate-100 ring-1 ring-slate-500';
+            statusBg = 'bg-neutral-800 border-neutral-500 text-neutral-100 ring-1 ring-neutral-500';
           }
 
           return (
@@ -99,7 +99,7 @@ export const Stepper: React.FC<StepperProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-950 shadow-xl border border-slate-700 text-xs font-bold text-slate-300">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neutral-950 shadow-xl border border-neutral-700 text-xs font-bold text-neutral-300">
                   {icon}
                 </span>
                 <span className="text-[10px] font-mono uppercase tracking-wider font-semibold opacity-70">
