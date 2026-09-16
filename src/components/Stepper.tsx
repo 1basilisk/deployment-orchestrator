@@ -32,7 +32,7 @@ export const Stepper: React.FC<StepperProps> = ({
             </span>
           </h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Strict sequential execution: each API call waits for validated success before unlocking the next phase.
+            Flexible execution: follow the sequence end-to-end, or jump to specific steps to execute independent tasks
           </p>
         </div>
 
