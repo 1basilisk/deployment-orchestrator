@@ -29,6 +29,7 @@ let config: DeploymentConfig = {
 const apiLogs: ApiTransaction[] = [];
 
 function recordLog(
+  requestType: string,
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   url: string,
   status: number,
@@ -37,15 +38,24 @@ function recordLog(
   responsePayload: any,
   error?: string
 ) {
+  const safeClone = (obj: any) => {
+    try {
+      return obj ? JSON.parse(JSON.stringify(obj)) : undefined;
+    } catch (e) {
+      return { _error: 'Unserializable payload containing circular references' };
+    }
+  };
+
   const logItem: ApiTransaction = {
     id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     timestamp: new Date().toISOString(),
+    requestType,
     method,
     url,
     status,
     durationMs,
-    requestPayload: requestPayload ? JSON.parse(JSON.stringify(requestPayload)) : undefined,
-    responsePayload: responsePayload ? JSON.parse(JSON.stringify(responsePayload)) : undefined,
+    requestPayload: safeClone(requestPayload),
+    responsePayload: safeClone(responsePayload),
     error,
   };
   apiLogs.unshift(logItem);
@@ -78,7 +88,7 @@ async function getAccessToken(): Promise<string> {
     const duration = Date.now() - startTime;
     const data = await res.json() as any;
 
-    recordLog('POST', tokenEndpoint, res.status, duration, { client_id: config.clientId, scope: 'powerbi/api/.default' }, { token_type: data.token_type, expires_in: data.expires_in, error: data.error }, data.error_description);
+    recordLog('Authenticate Entra ID', 'POST', tokenEndpoint, res.status, duration, { client_id: config.clientId, scope: 'powerbi/api/.default' }, { token_type: data.token_type, expires_in: data.expires_in, error: data.error }, data.error_description);
 
     if (!res.ok || !data.access_token) {
       throw new Error(data.error_description || `Failed to authenticate with Azure Entra ID (${res.status})`);
@@ -86,7 +96,7 @@ async function getAccessToken(): Promise<string> {
 
     return data.access_token;
   } catch (err: any) {
-    recordLog('POST', tokenEndpoint, 500, Date.now() - startTime, { client_id: config.clientId }, null, err.message);
+    recordLog('Authenticate Entra ID', 'POST', tokenEndpoint, 500, Date.now() - startTime, { client_id: config.clientId }, null, err.message);
     throw err;
   }
 }
@@ -124,7 +134,7 @@ app.post('/api/powerbi/test-connection', async (_req: Request, res: Response) =>
     const duration = Date.now() - startTime;
     const data = await resp.json() as any;
 
-    recordLog('GET', testUrl, resp.status, duration, null, data, resp.ok ? undefined : 'Error testing connection');
+    recordLog('Test Connection', 'GET', testUrl, resp.status, duration, null, data, resp.ok ? undefined : 'Error testing connection');
 
     if (!resp.ok) {
       res.status(resp.status).json({
@@ -160,7 +170,7 @@ app.get('/api/powerbi/pipeline-info', async (req: Request, res: Response) => {
     });
     const stagesData = await stagesResp.json() as any;
 
-    recordLog('GET', stagesUrl, stagesResp.status, Date.now() - startTime, null, stagesData);
+    recordLog('Fetch Pipeline Stages', 'GET', stagesUrl, stagesResp.status, Date.now() - startTime, null, stagesData);
 
     if (!stagesResp.ok) {
       throw new Error(stagesData.error?.message || `Failed to fetch pipeline stages (${stagesResp.status})`);
@@ -207,8 +217,8 @@ app.get('/api/powerbi/stage-artifacts', async (req: Request, res: Response) => {
     const reportsData = await reportsResp.json() as any;
     const datasetsData = await datasetsResp.json() as any;
 
-    recordLog('GET', reportsUrl, reportsResp.status, Date.now() - startTime, { workspaceId }, reportsData);
-    recordLog('GET', datasetsUrl, datasetsResp.status, Date.now() - startTime, { workspaceId }, datasetsData);
+    recordLog('Fetch Stage Reports', 'GET', reportsUrl, reportsResp.status, Date.now() - startTime, { workspaceId }, reportsData);
+    recordLog('Fetch Stage Datasets', 'GET', datasetsUrl, datasetsResp.status, Date.now() - startTime, { workspaceId }, datasetsData);
 
     if (!reportsResp.ok) throw new Error(reportsData.error?.message || 'Failed to list reports');
     if (!datasetsResp.ok) throw new Error(datasetsData.error?.message || 'Failed to list datasets');
@@ -271,7 +281,7 @@ app.post('/api/powerbi/deploy', async (req: Request, res: Response) => {
       responseData = { location: opHeader };
     }
 
-    recordLog('POST', deployUrl, deployResp.status, duration, deployBody, responseData);
+    recordLog('Deploy to Prod', 'POST', deployUrl, deployResp.status, duration, deployBody, responseData);
 
     if (!deployResp.ok && deployResp.status !== 202) {
       throw new Error(responseData.error?.message || `Deployment failed to trigger (${deployResp.status})`);
@@ -302,7 +312,7 @@ app.get('/api/powerbi/operations/:operationId', async (req: Request, res: Respon
     });
     const opData = await opResp.json() as any;
 
-    recordLog('GET', opUrl, opResp.status, Date.now() - startTime, { operationId }, opData);
+    recordLog('Check Deploy Operation', 'GET', opUrl, opResp.status, Date.now() - startTime, { operationId }, opData);
 
     if (!opResp.ok) {
       throw new Error(opData.error?.message || `Failed to check operation status (${opResp.status})`);
@@ -337,7 +347,7 @@ app.get('/api/powerbi/datasets/:datasetId/parameters', async (req: Request, res:
     });
     const paramsData = await paramsResp.json() as any;
 
-    recordLog('GET', paramsUrl, paramsResp.status, Date.now() - startTime, { workspaceId, datasetId }, paramsData);
+    recordLog('Fetch Dataset Parameters', 'GET', paramsUrl, paramsResp.status, Date.now() - startTime, { workspaceId, datasetId }, paramsData);
 
     if (!paramsResp.ok) {
       throw new Error(paramsData.error?.message || `Failed to retrieve parameters (${paramsResp.status})`);
@@ -380,7 +390,7 @@ app.post('/api/powerbi/datasets/:datasetId/update-parameters', async (req: Reque
       respData = { status: updateResp.statusText };
     }
 
-    recordLog('POST', updateUrl, updateResp.status, duration, { updateDetails }, respData);
+    recordLog('Update Parameters', 'POST', updateUrl, updateResp.status, duration, { updateDetails }, respData);
 
     if (!updateResp.ok) {
       throw new Error(respData.error?.message || `Failed to update parameters (${updateResp.status})`);
@@ -423,7 +433,7 @@ app.post('/api/powerbi/datasets/:datasetId/refresh', async (req: Request, res: R
       respData = { status: refreshResp.statusText };
     }
 
-    recordLog('POST', refreshUrl, refreshResp.status, duration, { notifyOption }, respData);
+    recordLog('Trigger Semantic Refresh', 'POST', refreshUrl, refreshResp.status, duration, { notifyOption }, respData);
 
     if (!refreshResp.ok && refreshResp.status !== 202) {
       throw new Error(respData.error?.message || `Failed to trigger refresh (${refreshResp.status})`);
@@ -452,7 +462,7 @@ app.get('/api/powerbi/datasets/:datasetId/refresh-status', async (req: Request, 
     });
     const statusData = await statusResp.json() as any;
 
-    recordLog('GET', statusUrl, statusResp.status, Date.now() - startTime, { workspaceId, datasetId }, statusData);
+    recordLog('Check Refresh Status', 'GET', statusUrl, statusResp.status, Date.now() - startTime, { workspaceId, datasetId }, statusData);
 
     if (!statusResp.ok) {
       throw new Error(statusData.error?.message || `Failed to fetch refresh status (${statusResp.status})`);

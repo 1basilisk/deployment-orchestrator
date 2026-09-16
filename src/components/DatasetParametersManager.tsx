@@ -142,6 +142,7 @@ export const DatasetParametersManager: React.FC<DatasetParametersManagerProps> =
             >
               <Database className="w-3.5 h-3.5" />
               {d.name}
+              {d.hasDuplicateName && <AlertCircle className="w-3.5 h-3.5 text-rose-500" title="Duplicate name detected in Production workspace" />}
               {hasData && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
             </button>
           );

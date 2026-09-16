@@ -31,9 +31,14 @@ export const Step4Parameters: React.FC<Step4ParametersProps> = ({
               Check &amp; Update Prod Parameters
             </h3>
           </div>
-          <p className="text-xs text-neutral-400 mt-1 pl-8">
-            Inspects parameters in Production and updates connection strings or server endpoints.
-          </p>
+          <div className="pl-8 mt-1 space-y-1">
+            <p className="text-xs text-neutral-400">
+              Inspects parameters in Production and updates connection strings or server endpoints.
+            </p>
+            <p className="text-[11px] font-mono text-neutral-500">
+              Target Workspace ID: <span className="text-neutral-300 font-medium">{workspaceId || 'N/A'}</span>
+            </p>
+          </div>
         </div>
       </div>
       <DatasetParametersManager

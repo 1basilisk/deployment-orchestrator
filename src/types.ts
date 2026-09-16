@@ -40,6 +40,7 @@ export interface Dataset {
   configuredBy?: string;
   isRefreshable?: boolean;
   targetDatasetId?: string;
+  hasDuplicateName?: boolean;
 }
 
 export interface DatasetParameter {
@@ -77,6 +78,7 @@ export interface DatasetRefresh {
 export interface ApiTransaction {
   id: string;
   timestamp: string;
+  requestType?: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   url: string;
   status: number;

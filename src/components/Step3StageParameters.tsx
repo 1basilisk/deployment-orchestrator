@@ -29,9 +29,14 @@ export const Step3StageParameters: React.FC<Step3StageParametersProps> = ({
               Check Stage Parameters (Optional)
             </h3>
           </div>
-          <p className="text-xs text-neutral-400 mt-1 pl-8">
-            Review parameters in the Stage Workspace before deployment.
-          </p>
+          <div className="pl-8 mt-1 space-y-1">
+            <p className="text-xs text-neutral-400">
+              Review parameters in the Stage Workspace before deployment.
+            </p>
+            <p className="text-[11px] font-mono text-neutral-500">
+              Target Workspace ID: <span className="text-neutral-300 font-medium">{workspaceId || 'N/A'}</span>
+            </p>
+          </div>
         </div>
       </div>
       <DatasetParametersManager

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { Stepper } from './components/Stepper';
 import { Step1WorkspaceInfo } from './components/Step1WorkspaceInfo';
@@ -26,7 +26,7 @@ const INITIAL_STEPS: StepState[] = [
   { id: 3, title: 'Check Stage Parameters (Optional)', shortDesc: 'Review pre-deployment parameters', status: 'idle' },
   { id: 4, title: 'Deploy to Production', shortDesc: 'Trigger deploy & verify 200', status: 'idle' },
   { id: 5, title: 'Check & Update Prod Parameters', shortDesc: 'Configure production endpoints', status: 'idle' },
-  { id: 6, title: 'Dataset Refresh', shortDesc: 'Trigger cloud semantic refresh', status: 'idle' },
+  { id: 6, title: 'Trigger & Verify Refresh', shortDesc: 'Trigger & poll semantic refresh', status: 'idle' },
 ];
 
 export default function App() {
@@ -40,6 +40,10 @@ export default function App() {
   const [steps, setSteps] = useState<StepState[]>(INITIAL_STEPS);
   const [currentStep, setCurrentStep] = useState<StepId>(1);
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(true);
+  const isAutoAdvancingRef = useRef(isAutoAdvancing);
+  useEffect(() => {
+    isAutoAdvancingRef.current = isAutoAdvancing;
+  }, [isAutoAdvancing]);
 
   // Step 1
   const [pipelineData, setPipelineData] = useState<{
@@ -52,6 +56,8 @@ export default function App() {
   // Step 2
   const [stageReports, setStageReports] = useState<Report[]>([]);
   const [stageDatasets, setStageDatasets] = useState<Dataset[]>([]);
+  const [prodReports, setProdReports] = useState<Report[]>([]);
+  const [prodDatasets, setProdDatasets] = useState<Dataset[]>([]);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   const [selectedDatasetIds, setSelectedDatasetIds] = useState<string[]>([]);
   const [autoSelectDataset, setAutoSelectDataset] = useState(true);
@@ -95,6 +101,8 @@ export default function App() {
     setPipelineData(null);
     setStageReports([]);
     setStageDatasets([]);
+    setProdReports([]);
+    setProdDatasets([]);
     setSelectedReportIds([]);
     setSelectedDatasetIds([]);
     setOperation(null);
@@ -111,7 +119,6 @@ export default function App() {
       await refreshLogs();
       if (advance) {
         setCurrentStep(2);
-        setTimeout(() => executeStep2(true, data.stageWorkspace?.id), 300);
       }
     } catch (err: any) {
       updateStepState(1, { status: 'failed', error: err.message });
@@ -130,13 +137,12 @@ export default function App() {
       const data = await apiClient.getStageArtifacts(targetWsId);
       setStageReports(data.reports);
       setStageDatasets(data.datasets);
-      setSelectedReportIds(data.reports.map((r) => r.id));
-      setSelectedDatasetIds(data.datasets.map((d) => d.id));
+      setSelectedReportIds([]);
+      setSelectedDatasetIds([]);
       updateStepState(2, { status: 'success', completedAt: new Date().toISOString() });
       await refreshLogs();
       if (advance) {
         setCurrentStep(4); // auto-advance skips optional step 3
-        setTimeout(() => executeStep4(true), 400);
       }
     } catch (err: any) {
       updateStepState(2, { status: 'failed', error: err.message });
@@ -184,6 +190,18 @@ export default function App() {
         if (statusRes.operation.status === 'Succeeded') {
           isCompleted = true;
           updateStepState(4, { status: 'success', completedAt: new Date().toISOString() });
+          
+          // Fetch prod artifacts to get the actual production IDs
+          const pWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId;
+          if (pWsId) {
+            try {
+              const prodArtifacts = await apiClient.getStageArtifacts(pWsId);
+              setProdReports(prodArtifacts.reports);
+              setProdDatasets(prodArtifacts.datasets);
+            } catch (e) {
+              console.error("Failed to fetch prod artifacts", e);
+            }
+          }
           if (advance) {
             setCurrentStep(5);
           }
@@ -210,6 +228,12 @@ export default function App() {
 
   const selectedDatasetsFull = stageDatasets.filter(d => selectedDatasetIds.includes(d.id));
   const selectedReportsFull = stageReports.filter(r => selectedReportIds.includes(r.id));
+  
+  const selectedDatasetNames = selectedDatasetsFull.map(d => d.name);
+  const prodSelectedDatasetsFull = prodDatasets.filter(d => selectedDatasetNames.includes(d.name)).map((d, _, arr) => ({
+    ...d,
+    hasDuplicateName: arr.filter(x => x.name === d.name).length > 1
+  }));
   const stageWsId = pipelineData?.stageWorkspace?.id || config?.stageWorkspaceId || '';
   const prodWsId = pipelineData?.prodWorkspace?.id || config?.prodWorkspaceId || '';
 
@@ -226,7 +250,7 @@ export default function App() {
         isDeploying={isAnyExecuting}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'pipeline' && (
           <div>
             <Stepper
@@ -329,6 +353,14 @@ export default function App() {
                       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
                     )
                   }
+                  onSelectAll={() => {
+                    setSelectedReportIds(stageReports.map((r) => r.id));
+                    setSelectedDatasetIds(stageDatasets.map((d) => d.id));
+                  }}
+                  onDeselectAll={() => {
+                    setSelectedReportIds([]);
+                    setSelectedDatasetIds([]);
+                  }}
                   onExecute={() => executeStep2(isAutoAdvancing)}
                   isRunning={isStep2Running}
                   onContinue={() => setCurrentStep(3)}
@@ -363,10 +395,10 @@ export default function App() {
               {currentStep === 5 && (
                 <Step4Parameters
                   step={steps[4]}
-                  datasets={selectedDatasetsFull}
+                  datasets={prodSelectedDatasetsFull.length > 0 ? prodSelectedDatasetsFull : selectedDatasetsFull}
                   workspaceId={prodWsId}
                   onFetchParameters={apiClient.getDatasetParameters}
-                  onSaveParameters={(datasetId, wsId, updates) => apiClient.updateDatasetParameters(datasetId, updates, wsId)}
+                  onSaveParameters={async (datasetId, wsId, updates) => { await apiClient.updateDatasetParameters(datasetId, updates, wsId); }}
                   onContinue={() => setCurrentStep(6)}
                 />
               )}
@@ -374,7 +406,7 @@ export default function App() {
               {currentStep === 6 && (
                 <Step5Refresh
                   step={steps[5]}
-                  datasets={selectedDatasetsFull}
+                  datasets={prodSelectedDatasetsFull.length > 0 ? prodSelectedDatasetsFull : selectedDatasetsFull}
                   workspaceId={prodWsId}
                   onTriggerRefresh={apiClient.triggerRefresh}
                   onCheckStatus={apiClient.getRefreshStatus}
@@ -390,10 +422,11 @@ export default function App() {
           <LogsView
             logs={logs}
             isLoading={isLoadingLogs}
-            onClearLogs={async () => {
+            onClear={async () => {
               await apiClient.clearLogs();
               await refreshLogs();
             }}
+            onRefresh={refreshLogs}
           />
         )}
       </main>
